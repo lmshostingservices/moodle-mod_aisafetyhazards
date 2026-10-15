@@ -2,6 +2,13 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.8] - 2026-10-15
+
+### Fixed
+
+- Clicking several labels of a row quickly (for example two elimination labels) showed an error dialogue ("That label is already placed"): once the first right label finished the row, the others were still sent. Labels that a label before them has made unnecessary are no longer sent, and a label that cannot go there now gets a short note in the feedback instead of an error.
+- The feedback under the picture is as wide as the picture; the side panel no longer pushes it down.
+
 ## [v1.0.7] - 2026-10-15
 
 ### Fixed

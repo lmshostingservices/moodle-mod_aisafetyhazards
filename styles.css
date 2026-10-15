@@ -1531,6 +1531,15 @@
     gap: 14px;
     align-items: start;
 }
+.path-mod-aisafetyhazards .sh-play-left {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    align-content: start;
+}
+.path-mod-aisafetyhazards .sh-play-left .sh-feedback:empty {
+    display: none;
+}
 .path-mod-aisafetyhazards .sh-play .sh-figure {
     position: relative;
     display: grid;
@@ -1542,20 +1551,20 @@
 
 /* The picture leaves room under it for the label box, so the whole slide fits on the screen. */
 @media (min-height: 700px) {
-    .path-mod-aisafetyhazards .sh-play .sh-figure {
+    .path-mod-aisafetyhazards .sh-play .sh-play-left {
         max-width: calc((100vh - 430px) * 1.6);
     }
 }
 
 @media (min-height: 700px) {
     /* Full screen: room for the buttons under the label box too. */
-    .path-mod-aisafetyhazards [data-region="player"].is-full .sh-play .sh-figure {
+    .path-mod-aisafetyhazards [data-region="player"].is-full .sh-play .sh-play-left {
         max-width: calc((100vh - 470px) * 1.6);
     }
 }
 
 @media (min-height: 560px) and (max-height: 699.98px) {
-    .path-mod-aisafetyhazards .sh-play .sh-figure {
+    .path-mod-aisafetyhazards .sh-play .sh-play-left {
         max-width: calc((100vh - 230px) * 1.6);
     }
 }

@@ -472,7 +472,12 @@ class Player {
             this.rows[row] = {node: r, chips};
         });
         this.figure.appendChild(this.box);
-        main.appendChild(this.figure);
+        // The picture column: the picture, its label box and the feedback, all as wide as the picture.
+        const left = el('div', 'sh-play-left');
+        left.appendChild(this.figure);
+        this.feedback = el('div', 'sh-feedback', {'aria-live': 'polite'});
+        left.appendChild(this.feedback);
+        main.appendChild(left);
 
         // The gauges for the hazard being worked on.
         const side = el('aside', 'sh-side', {'aria-label': S.activehazard});
@@ -501,8 +506,6 @@ class Player {
         main.appendChild(side);
         wrap.appendChild(main);
 
-        this.feedback = el('div', 'sh-feedback', {'aria-live': 'polite'});
-        wrap.appendChild(this.feedback);
         const foot = el('div', 'sh-play-foot');
         this.studybtn = button('sh-btn sh-btn-ghost', S.study_next, 'play', () => this.studyStep());
         this.studybtn.hidden = this.mode !== 'study';
@@ -925,6 +928,14 @@ class Player {
         if (scene !== this.scene || (label.row === 'hazard' && spot.found)) {
             return;
         }
+        if (label.row !== 'hazard') {
+            // Labels clicked quickly one after another: one that a label before it has made unnecessary (its row is
+            // finished, or it is already chosen) is not sent.
+            const c = (spot.rows[label.row] || []).find((x) => x.id === label.id);
+            if ((spot.done && Number(spot.done[label.row])) || (c && Number(c.chosen)) || spot.complete) {
+                return;
+            }
+        }
         this.busy = true;
         const before = spot.now ? {...spot.now} : {likelihood: spot.likelihood, consequence: spot.consequence};
         let result;
@@ -933,6 +944,11 @@ class Player {
                 sceneid: scene.sceneid, kind: label.row, hazardid: spot.id, itemid: label.id}}])[0];
         } catch (err) {
             this.busy = false;
+            if (['alreadyplaced', 'rowsinorder', 'findhazardfirst'].includes(err && err.errorcode)) {
+                // Not an error: the label cannot go there now. Say why, without a dialogue.
+                this.feedback.replaceChildren(el('p', 'sh-fb-test', {text: err.message}));
+                return;
+            }
             this.error(err);
             return;
         }

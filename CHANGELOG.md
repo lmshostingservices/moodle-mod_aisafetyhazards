@@ -2,6 +2,19 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.6] - 2026-10-15
+
+### Fixed
+
+- Pictures seemed to take minutes. While LMS Labs made a picture, the request kept the teacher's Moodle session locked, so every other request from the teacher (other pages, the next picture, "Check again") waited in line behind it. The session is now released before LMS Labs is asked, for pictures, drafts, voiceover and "Check again".
+- "Create missing pictures" now makes two pictures at a time (each its own request), so a lesson's pictures are ready in about half the time.
+
+## [v1.0.5] - 2026-10-15
+
+### Fixed
+
+- "Create picture" and "Create missing pictures" showed "TypeError: create(...).finally is not a function" as soon as the request was sent, and the button kept counting. The picture request itself was sent and handled normally; only the page lost track of it. The button now waits for the answer and shows it.
+
 ## [v1.0.4] - 2026-10-15
 
 ### Changed

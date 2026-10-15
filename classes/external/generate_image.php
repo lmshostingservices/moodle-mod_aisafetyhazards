@@ -51,6 +51,8 @@ class generate_image extends base {
         global $USER;
         $params = self::validate_parameters(self::execute_parameters(), ['sceneid' => $sceneid]);
         [, , $instance, $context, $scene] = self::load_scene($params['sceneid'], 'useai');
+        // LMS Labs can take minutes: the session is released first, so the teacher's other pages are not held up.
+        \core\session\manager::write_close();
         $row = requests::start_image($instance, (int)$USER->id, $scene);
         return requests::export($row, $context);
     }

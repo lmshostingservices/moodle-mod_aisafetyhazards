@@ -55,6 +55,8 @@ class draft_scene extends base {
         global $USER;
         $params = self::validate_parameters(self::execute_parameters(), ['cmid' => $cmid, 'brief' => $brief]);
         [, , $instance, $modcontext] = self::load_ai($params['cmid']);
+        // LMS Labs can take minutes: the session is released first, so the teacher's other pages are not held up.
+        \core\session\manager::write_close();
         $row = requests::start_scene($instance, (int)$USER->id, $params['brief']);
         return requests::export($row, $modcontext);
     }

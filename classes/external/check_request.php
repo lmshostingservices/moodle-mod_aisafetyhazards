@@ -52,6 +52,8 @@ class check_request extends base {
     public static function execute(int $cmid, int $requestid): array {
         $params = self::validate_parameters(self::execute_parameters(), ['cmid' => $cmid, 'requestid' => $requestid]);
         [, , $instance, $modcontext] = self::load_ai($params['cmid'], false);
+        // LMS Labs can take minutes: the session is released first, so the teacher's other pages are not held up.
+        \core\session\manager::write_close();
         $row = requests::check(requests::get((int)$instance->id, $params['requestid']), $instance);
         return requests::export($row, $modcontext);
     }

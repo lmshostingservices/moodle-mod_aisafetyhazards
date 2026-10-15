@@ -90,15 +90,16 @@ export const init = async(selector) => {
         const start = Date.now();
         const draw = () => {
             const s = Math.floor((Date.now() - start) / 1000);
-            label.textContent = text + ' ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+            label.textContent = (label.dataset.base || text) + ' ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
         };
         draw();
         const timer = window.setInterval(draw, 1000);
         return () => window.clearInterval(timer);
     };
     // One intentional, stored request (a new key); it is never resent automatically.
-    const create = (sceneid) => Ajax.call([{methodname: 'mod_aisafetyhazards_generate_image',
-        args: {sceneid}}], true, true, false, 200000)[0];
+    // Ajax.call gives a jQuery promise; a native one is needed for finally().
+    const create = (sceneid) => Promise.resolve(Ajax.call([{methodname: 'mod_aisafetyhazards_generate_image',
+        args: {sceneid}}], true, true, false, 200000)[0]);
 
     root.querySelectorAll('[data-action="genimage"]').forEach((btn) => {
         btn.addEventListener('click', async() => {
@@ -238,21 +239,33 @@ export const init = async(selector) => {
             all.disabled = true;
             lockNav(true, S.genall_busy);
             let made = 0;
-            try {
-                // One after another; the run stops at the first picture that is not delivered.
-                for (const id of ids) {
-                    const stop = ticking(label, fmt(S.genall_progress, {done: made + 1, count: ids.length}));
-                    const request = await create(id).finally(stop);
+            let stopped = false;
+            const queue = ids.slice();
+            const stop = ticking(label, S.generating);
+            const progress = () => fmt(S.genall_progress, {done: made, count: ids.length});
+            label.dataset.base = progress();
+            // Two pictures at a time (each its own request and key); no new one starts after one that was
+            // not delivered.
+            const worker = async() => {
+                while (queue.length && !stopped) {
+                    const request = await create(queue.shift());
                     if (request.status !== 'completed') {
+                        stopped = true;
                         await Requests.show(region, request, null);
                         region.scrollIntoView({behavior: 'smooth', block: 'start'});
-                        break;
+                        return;
                     }
                     made++;
+                    label.dataset.base = progress();
                 }
+            };
+            try {
+                await Promise.all([worker(), worker()]);
             } catch (err) {
                 Notification.exception(err);
             }
+            stop();
+            delete label.dataset.base;
             lockNav(false);
             if (made > 0) {
                 window.location.reload();

@@ -68,6 +68,8 @@ class create_voice extends base {
             'maxcredits' => $maxcredits]
         );
         [, , $instance, $context, $scene] = self::load_scene($params['sceneid'], 'useai');
+        // LMS Labs can take minutes: the session is released first, so the teacher's other pages are not held up.
+        \core\session\manager::write_close();
         $row = requests::start_voice($instance, (int)$USER->id, $scene, $params['index'], $params['maxcredits']);
         return requests::export($row, $context);
     }

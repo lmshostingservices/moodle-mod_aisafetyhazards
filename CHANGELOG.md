@@ -2,6 +2,13 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.3] - 2026-10-15
+
+### Fixed
+
+- The scene went below the fold on wide screens: the picture is now never taller than the screen leaves room for, so the title, the task, the whole picture with its label box and the side panel fit on one screen. Starting a mode scrolls the player to just under Moodle's top bar.
+- The hazard numbers were not centred in their circles.
+
 ## [v1.0.2] - 2026-10-15
 
 ### Changed

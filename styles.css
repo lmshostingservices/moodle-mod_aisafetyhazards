@@ -1166,6 +1166,10 @@
     padding-top: 16px;
     padding-bottom: 16px;
 }
+.path-mod-aisafetyhazards [data-region="player"] {
+    /* Scrolled to just under Moodle's fixed top bar. */
+    scroll-margin-top: 66px;
+}
 .path-mod-aisafetyhazards [data-region="player"]:fullscreen {
     background: var(--sh-bg);
 }
@@ -1525,6 +1529,16 @@
     user-select: none;
     touch-action: none;
 }
+/* The picture is never taller than the screen leaves room for, so the whole slide stays above the fold. */
+@media (min-height: 560px) {
+    .path-mod-aisafetyhazards .sh-play .sh-figure {
+        max-width: calc((100vh - 300px) * 1.6);
+    }
+    .path-mod-aisafetyhazards .sh-play-main {
+        grid-template-columns: minmax(0, max-content) 290px;
+        justify-content: space-between;
+    }
+}
 .path-mod-aisafetyhazards .sh-pic {
     position: relative;
 }
@@ -1794,8 +1808,14 @@
     gap: 6px;
 }
 .path-mod-aisafetyhazards .sh-hztab {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    box-sizing: border-box;
     width: 36px;
     height: 36px;
+    padding: 0;
+    line-height: 1;
     border: 2px solid var(--sh-border-strong);
     border-radius: 50%;
     background: var(--sh-surface);

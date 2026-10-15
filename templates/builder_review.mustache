@@ -1,0 +1,42 @@
+{{!
+    @template mod_aisafetyhazards/builder_review
+
+    Review of a lesson draft before the scenes are created: each scene with its three hazards and the starting risk.
+
+    Example context (json):
+    {
+        "count": 1,
+        "scenes": [{"index": 0, "title": "Digging the trench", "context": "The excavator is digging a 2 m trench.",
+            "hazards": [{"name": "Trench collapse", "rating": "extreme", "ratingname": "Extreme", "controls": 9}],
+            "distractors": [{"name": "Sunburn"}]}]
+    }
+}}
+<div class="sh-panel">
+    <h4>{{#str}} review_title, mod_aisafetyhazards, {{count}} {{/str}}</h4>
+    <p class="sh-mini">{{#str}} review_help, mod_aisafetyhazards {{/str}}</p>
+    <div class="sh-draftgrid">
+        {{#scenes}}
+        <label class="sh-draft">
+            <span class="sh-draft-head">
+                <input type="checkbox" data-scene="{{index}}" checked>
+                <strong dir="auto">{{title}}</strong>
+            </span>
+            {{#context}}<span class="sh-draft-context" dir="auto">{{context}}</span>{{/context}}
+            <span class="sh-draft-phrases">
+                {{#hazards}}
+                <span class="sh-draft-phrase">
+                    <span class="sh-rating sh-rating-{{rating}}">{{ratingname}}</span> <span dir="auto">{{name}}</span>
+                    <span class="sh-draft-kpi">{{#str}} review_controls, mod_aisafetyhazards, {{controls}} {{/str}}</span>
+                </span>
+                {{/hazards}}
+                {{#distractors}}
+                <span class="sh-draft-phrase is-distractor"><span dir="auto">{{name}}</span> <span class="sh-draft-kpi">{{#str}} review_distractor, mod_aisafetyhazards {{/str}}</span></span>
+                {{/distractors}}
+            </span>
+        </label>
+        {{/scenes}}
+    </div>
+    <div class="sh-wizard-actions">
+        <button type="button" class="sh-btn sh-btn-primary" data-action="create">{{#str}} review_create, mod_aisafetyhazards {{/str}}</button>
+    </div>
+</div>

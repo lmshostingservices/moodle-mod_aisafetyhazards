@@ -1,0 +1,40 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_aisafetyhazards/aireq_item
+
+    One stored LMS Labs request: what happened and what the teacher can do next.
+
+    Example context (json):
+    {
+        "id": 3, "operation": "scene", "status": "uncertain", "title": "A scheduling conflict",
+        "message": "LMS Labs did not confirm this draft.", "requestid": "abc", "canrecheck": true, "candismiss": true,
+        "poll": false, "retryafter": 5, "sceneid": 0, "sceneurl": "", "openscene": false, "timecreated": "Monday"
+    }
+}}
+<div class="sh-aireq is-{{status}}" data-request="{{id}}" data-status="{{status}}" data-operation="{{operation}}" data-scene="{{sceneid}}"{{#poll}} data-poll="1"{{/poll}} data-retryafter="{{retryafter}}">
+    <div class="sh-aireq-head">
+        <strong class="sh-aireq-title" dir="auto">{{title}}</strong>
+        <span class="sh-mini">{{timecreated}}</span>
+    </div>
+    <p class="sh-aireq-message" role="status">{{message}}</p>
+    <div class="sh-aireq-actions">
+        {{#openscene}}<a class="sh-btn sh-btn-primary sh-btn-sm" href="{{sceneurl}}">{{#str}} aireq_openscene, mod_aisafetyhazards {{/str}}</a>{{/openscene}}
+        {{#canrecheck}}<button type="button" class="sh-btn sh-btn-primary sh-btn-sm" data-action="recheck">{{#str}} aireq_checkagain, mod_aisafetyhazards {{/str}}</button>{{/canrecheck}}
+        {{#candismiss}}<button type="button" class="sh-btn sh-btn-ghost sh-btn-sm" data-action="dismiss"{{#canrecheck}} data-confirm="1"{{/canrecheck}}>{{#str}} aireq_dismiss, mod_aisafetyhazards {{/str}}</button>{{/candismiss}}
+    </div>
+</div>

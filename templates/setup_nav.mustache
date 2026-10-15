@@ -1,0 +1,37 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_aisafetyhazards/setup_nav
+
+    Back and Next at the bottom of a set-up step. Next can be held back with a reason.
+
+    Example context (json):
+    {
+        "nav": {"backurl": "#", "backlabel": "Back", "nexturl": "#", "nextlabel": "Next: pictures", "blocked": ""}
+    }
+}}
+{{#nav}}
+<div class="sh-setupnav">
+    {{#backurl}}<a class="sh-btn sh-btn-ghost" href="{{backurl}}">{{backlabel}}</a>{{/backurl}}
+    <span class="sh-grow"></span>
+    {{#blocked}}<p class="sh-setupnav-blocked" id="sh-setupnav-blocked">{{blocked}}</p>{{/blocked}}
+    {{#nexturl}}
+    {{^blocked}}<a class="sh-btn sh-btn-primary" href="{{nexturl}}" data-action="setupnext">{{nextlabel}}</a>{{/blocked}}
+    {{#blocked}}<button type="button" class="sh-btn sh-btn-primary" disabled aria-describedby="sh-setupnav-blocked">{{nextlabel}}</button>{{/blocked}}
+    {{/nexturl}}
+</div>
+{{/nav}}

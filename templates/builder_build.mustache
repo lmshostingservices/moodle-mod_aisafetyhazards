@@ -1,0 +1,120 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_aisafetyhazards/builder_build
+
+    Set-up step 3: pick one of two ways to create the scenes: your own text (LMS Labs AI writes the scene)
+    or your own AI assistant (copy the prompt, paste the reply).
+
+    Example context (json):
+    {
+        "cmid": 1, "nexturl": "#", "canimport": true, "importcredits": 3, "importblock": {"cmid": 1, "requests": []},
+        "bar": {"current": 3, "total": 7, "steps": [{"number": 3, "name": "Create the scenes", "done": false, "current": true, "dot": 0}]},
+        "nav": {"backurl": "#", "backlabel": "Back", "nexturl": "#", "nextlabel": "Next: Pictures", "blocked": ""}, "hasbalance": false, "balance": "",
+        "canai": true, "draftcredits": 5, "brief": "One step of the trenching task",
+        "requests": [],
+        "prompt": "Create a lesson", "existing": 0,
+        "summary": {"industry": "Construction", "subindustry": "Civil construction", "task": "Trenching", "language": "English",
+            "scenes": 5, "style": "Photo"}
+    }
+}}
+<div id="sh-build" class="sh-wizard sh-build" data-cmid="{{cmid}}" data-nexturl="{{nexturl}}" data-importcredits="{{importcredits}}">
+    <div class="sh-setup-head">
+        <h2 class="h3">{{#str}} setup_title, mod_aisafetyhazards {{/str}}</h2>
+        {{#bar}}{{> mod_aisafetyhazards/setup_steps}}{{/bar}}
+    </div>
+    <dl class="sh-choices">
+        <div><dt>{{#str}} q_industry, mod_aisafetyhazards {{/str}}</dt><dd>{{summary.industry}}</dd></div>
+        <div><dt>{{#str}} q_subindustry, mod_aisafetyhazards {{/str}}</dt><dd>{{summary.subindustry}}</dd></div>
+        <div><dt>{{#str}} q_worktask, mod_aisafetyhazards {{/str}}</dt><dd>{{summary.task}}</dd></div>
+        <div><dt>{{#str}} step_language, mod_aisafetyhazards {{/str}}</dt><dd>{{summary.language}}</dd></div>
+        <div><dt>{{#str}} scenecount, mod_aisafetyhazards {{/str}}</dt><dd>{{summary.scenes}}</dd></div>
+        <div><dt>{{#str}} imagestyle, mod_aisafetyhazards {{/str}}</dt><dd>{{summary.style}}</dd></div>
+    </dl>
+    {{#existing}}<p class="sh-note">{{#str}} builder_existing, mod_aisafetyhazards, {{existing}} {{/str}}</p>{{/existing}}
+
+    {{#canai}}
+    <fieldset class="sh-wstep sh-pathpick" data-region="pathpick">
+        <legend class="sh-wstep-title">{{#str}} path_question, mod_aisafetyhazards {{/str}}</legend>
+        <div class="sh-cardgrid sh-pathgrid">
+            <label class="sh-pick">
+                <input type="radio" name="sh-path" value="own">
+                <span class="sh-pick-body">
+                    <strong>{{#str}} path_own_title, mod_aisafetyhazards {{/str}}</strong>
+                    <span class="sh-mini">{{#str}} path_own_desc, mod_aisafetyhazards {{/str}}</span>
+                </span>
+            </label>
+            <label class="sh-pick">
+                <input type="radio" name="sh-path" value="assistant">
+                <span class="sh-pick-body">
+                    <strong>{{#str}} path_assistant_title, mod_aisafetyhazards {{/str}}</strong>
+                    <span class="sh-mini">{{#str}} path_assistant_desc, mod_aisafetyhazards {{/str}}</span>
+                </span>
+            </label>
+        </div>
+    </fieldset>
+
+    <div class="sh-panel sh-buildpath sh-aidraft" data-region="aidraft" data-path="own" hidden>
+        <h3>{{#str}} path_own_title, mod_aisafetyhazards {{/str}}</h3>
+        <label class="d-block" for="sh-aibrief"><strong>{{#str}} own_label, mod_aisafetyhazards {{/str}}</strong></label>
+        <ul class="sh-mini sh-guide" id="sh-aibrief-help">
+            <li>{{#str}} own_guide_length, mod_aisafetyhazards {{/str}}</li>
+            <li>{{#str}} own_guide_type, mod_aisafetyhazards {{/str}}</li>
+            <li>{{#str}} own_guide_include, mod_aisafetyhazards {{/str}}</li>
+            <li>{{#str}} own_guide_privacy, mod_aisafetyhazards {{/str}}</li>
+            <li>{{#str}} own_guide_empty, mod_aisafetyhazards {{/str}}</li>
+        </ul>
+        <textarea id="sh-aibrief" class="sh-textarea" rows="6" maxlength="2000" data-field="brief" data-default="{{brief}}" aria-describedby="sh-aibrief-help" placeholder="{{#str}} own_placeholder, mod_aisafetyhazards {{/str}}"></textarea>
+        <p class="sh-mini">{{#str}} own_cost, mod_aisafetyhazards, {{draftcredits}} {{/str}}</p>
+        <button type="button" class="sh-btn sh-btn-primary" data-action="aidraft">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+            <span>{{#str}} aidraft_button, mod_aisafetyhazards, {{draftcredits}} {{/str}}</span>
+        </button>
+        {{#hasbalance}}<p class="sh-mini mt-2">{{balance}}</p>{{/hasbalance}}
+        {{> mod_aisafetyhazards/aireq_list}}
+    </div>
+    {{/canai}}
+
+    <div class="sh-panel sh-buildpath" data-path="assistant" {{#canai}}hidden{{/canai}}>
+        <h3>{{#str}} path_assistant_title, mod_aisafetyhazards {{/str}}</h3>
+        {{^canai}}<p class="sh-mini">{{#str}} path_assistant_only, mod_aisafetyhazards {{/str}}</p>{{/canai}}
+        <ol class="sh-aihelper-steps">
+            <li>{{#str}} build_manual_1, mod_aisafetyhazards {{/str}}
+                <button type="button" class="sh-btn sh-btn-ghost sh-btn-sm sh-copy" data-target="#sh-lessonprompt" data-done="{{#str}} copied, mod_aisafetyhazards {{/str}}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+                    <span>{{#str}} copyprompt, mod_aisafetyhazards {{/str}}</span>
+                </button>
+            </li>
+            <li>{{#str}} build_manual_2, mod_aisafetyhazards {{/str}}</li>
+            <li>{{#str}} build_manual_3, mod_aisafetyhazards {{/str}}</li>
+        </ol>
+        <details class="sh-promptview">
+            <summary>{{#str}} build_showprompt, mod_aisafetyhazards {{/str}}</summary>
+            <textarea id="sh-lessonprompt" class="sh-textarea sh-prompt-text" readonly rows="8" aria-label="{{#str}} build_showprompt, mod_aisafetyhazards {{/str}}">{{prompt}}</textarea>
+        </details>
+        {{#canimport}}
+        <label class="d-block mt-2" for="sh-lessonjson"><strong>{{#str}} build_paste, mod_aisafetyhazards {{/str}}</strong></label>
+        <textarea id="sh-lessonjson" class="sh-textarea" rows="8" data-region="json" placeholder='{"scenes": [ ... ]}'></textarea>
+        <button type="button" class="sh-btn sh-btn-primary mt-2" data-action="preview">{{#str}} build_preview, mod_aisafetyhazards {{/str}}</button>
+        <p class="sh-mini mt-3">{{#str}} path_assistant_note, mod_aisafetyhazards, {{importcredits}} {{/str}}</p>
+        <div data-region="importreqs">{{#importblock}}{{> mod_aisafetyhazards/aireq_list}}{{/importblock}}</div>
+        {{/canimport}}
+        {{^canimport}}<p class="sh-note mt-3">{{#str}} path_assistant_noimport, mod_aisafetyhazards {{/str}}</p>{{/canimport}}
+    </div>
+    <div class="sh-review-draft" data-region="review" hidden></div>
+    {{> mod_aisafetyhazards/setup_nav}}
+</div>

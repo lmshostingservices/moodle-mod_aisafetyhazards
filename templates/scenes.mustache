@@ -1,0 +1,151 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_aisafetyhazards/scenes
+
+    Set-up step 4 (pictures and hazard spots), 5 (voiceover) or 6 (check each scene), one card per scene in playing order.
+
+    Example context (json):
+    {
+        "bar": {"current": 4, "total": 7, "steps": [{"number": 4, "name": "Pictures", "done": false, "current": true, "dot": 0}]},
+        "pictures": true, "check": false, "voicestep": false, "voiceon": false, "voiceoff": false, "voicenolocale": false,
+        "voices": [], "voicepartsline": "The voiceover reads: the question.", "settingsurl": "#", "clipcount": 0, "clipids": "", "clipcredits": 0, "voicecredits": 1, "remakes": 0, "remakesline": "",
+        "hasscenes": true, "count": 1, "industry": "Construction › Civil construction › Trenching",
+        "cmid": 1, "requests": [], "canai": true, "aioff": false, "missingcount": 1, "missingids": "1",
+        "missingcredits": 5, "imagecredits": 5,
+        "cards": [{"id": 1, "number": 1, "title": "Digging the trench", "image": "", "noimage": true,
+            "hazardsok": true, "canai": true, "imagecredits": 5,
+            "editurl": "#", "spotsurl": "#", "replaceurl": "#", "deleteurl": "#", "upurl": null, "downurl": null,
+            "spots": [{"number": 1, "x": 30, "y": 40, "name": "Trench collapse", "auto": true}], "autospots": 1,
+            "voiceready": false, "voicemissing": "", "toolong": false}],
+        "nav": {"backurl": "#", "backlabel": "Back", "nexturl": "#", "nextlabel": "Next: Check the scenes", "blocked": "1 scene still needs a picture."}
+    }
+}}
+<div id="sh-scenes" class="sh-wizard sh-slides">
+    <div class="sh-setup-head">
+        <h2 class="h3">{{#str}} setup_title, mod_aisafetyhazards {{/str}}</h2>
+        {{#bar}}{{> mod_aisafetyhazards/setup_steps}}{{/bar}}
+    </div>
+
+    {{#pictures}}
+    <div class="sh-wstep">
+        <h3 class="sh-wstep-title">{{#str}} pictures_title, mod_aisafetyhazards {{/str}}</h3>
+        <p class="sh-mini">{{#str}} pictures_intro, mod_aisafetyhazards, {{imagecredits}} {{/str}}</p>
+        {{#canai}}{{#missingcount}}
+        <button type="button" class="sh-btn sh-btn-primary" data-action="genall" data-scenes="{{missingids}}" data-credits="{{imagecredits}}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+            <span>{{#str}} genall_button, mod_aisafetyhazards, { "count": {{missingcount}}, "credits": {{missingcredits}} } {{/str}}</span>
+        </button>
+        {{/missingcount}}
+        {{^missingcount}}<p class="sh-ok mb-0">{{#str}} pictures_alldone, mod_aisafetyhazards {{/str}}</p>{{/missingcount}}
+        {{/canai}}
+        {{#aioff}}<p class="sh-note mb-0">{{#str}} pictures_notconnected, mod_aisafetyhazards {{/str}}</p>{{/aioff}}
+        {{> mod_aisafetyhazards/aireq_list}}
+    </div>
+    {{/pictures}}
+
+    {{#voicestep}}
+    <div class="sh-wstep">
+        <h3 class="sh-wstep-title">{{#str}} voice_title, mod_aisafetyhazards {{/str}}</h3>
+        <p class="sh-mini">{{#str}} voice_intro, mod_aisafetyhazards, {{voicecredits}} {{/str}}{{#remakesline}} {{.}}{{/remakesline}}</p>
+        {{#voiceon}}
+        <p class="sh-mini">{{voicepartsline}} <a href="{{settingsurl}}">{{#str}} voice_changeparts, mod_aisafetyhazards {{/str}}</a></p>
+        {{#voices.0}}
+        <div class="sh-voicelist">
+            <strong>{{#str}} voices_people, mod_aisafetyhazards {{/str}}</strong>
+            <ul>{{#voices}}<li dir="auto">{{text}}</li>{{/voices}}</ul>
+        </div>
+        {{/voices.0}}
+        {{#pricehold}}<p class="sh-note sh-pricehold" role="status">{{pricehold}}</p>{{/pricehold}}
+        {{#clipcount}}
+        <button type="button" class="sh-btn sh-btn-primary" data-action="genvoice" {{#pricehold}}disabled {{/pricehold}}data-clips="{{clipids}}" data-credits="{{voicecredits}}" data-remakes="{{remakes}}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 0 1 0 7"/></svg>
+            <span>{{#remakes}}{{#str}} voice_button_remakes, mod_aisafetyhazards, {{clipcount}} {{/str}}{{/remakes}}{{^remakes}}{{#str}} voice_button, mod_aisafetyhazards, { "count": {{clipcount}}, "credits": {{clipcredits}} } {{/str}}{{/remakes}}</span>
+        </button>
+        {{/clipcount}}
+        {{^clipcount}}{{#hasscenes}}<p class="sh-ok mb-0">{{#str}} voice_allmade, mod_aisafetyhazards {{/str}}</p>{{/hasscenes}}{{/clipcount}}
+        {{> mod_aisafetyhazards/aireq_list}}
+        {{/voiceon}}
+        {{#voicenolocale}}<p class="sh-note mb-0">{{#str}} voice_nolocale, mod_aisafetyhazards {{/str}}</p>{{/voicenolocale}}
+        {{#voiceoff}}<p class="sh-note mb-0">{{#str}} voice_off, mod_aisafetyhazards {{/str}}</p>{{/voiceoff}}
+        {{^voiceoff}}<p class="sh-mini mt-2 mb-0">{{#str}} voice_optional, mod_aisafetyhazards {{/str}}</p>{{/voiceoff}}
+    </div>
+    {{/voicestep}}
+
+    {{#check}}
+    <div class="sh-wstep">
+        <h3 class="sh-wstep-title">{{#str}} check_title, mod_aisafetyhazards {{/str}}</h3>
+        <p class="sh-mini mb-0">{{#str}} check_intro, mod_aisafetyhazards {{/str}}</p>
+    </div>
+    {{/check}}
+
+    {{^hasscenes}}<p class="sh-note">{{#str}} noscenesyet, mod_aisafetyhazards {{/str}}</p>{{/hasscenes}}
+    <div class="sh-slides-grid">
+        {{#cards}}
+        <div class="sh-slidecard" data-scene="{{id}}">
+            <div class="sh-slidecard-thumb">
+                {{#image}}<img src="{{image}}" alt="" loading="lazy">{{/image}}
+                {{^noimage}}{{#spots}}<span class="sh-spot sh-spot-sm {{#auto}}is-auto{{/auto}}" style="left: {{x}}%; top: {{y}}%;" title="{{name}}">{{number}}</span>{{/spots}}{{/noimage}}
+                {{#noimage}}<span class="sh-slidecard-noimage">{{#str}} noimageyet, mod_aisafetyhazards {{/str}}</span>{{/noimage}}
+                <span class="sh-slidecard-no">{{#str}} scenex, mod_aisafetyhazards, {{number}} {{/str}}</span>
+            </div>
+            <div class="sh-slidecard-body">
+                <h3 class="sh-slidecard-title" dir="auto">{{title}}</h3>
+                {{#pictures}}
+                <div class="sh-slidecard-meta {{#noimage}}is-warn{{/noimage}}">
+                    {{#noimage}}{{#str}} sceneneedsimage, mod_aisafetyhazards {{/str}}{{/noimage}}{{^noimage}}{{#str}} scenehasimage, mod_aisafetyhazards {{/str}}{{/noimage}}
+                </div>
+                {{#canai}}
+                <button type="button" class="sh-btn {{#noimage}}sh-btn-primary{{/noimage}}{{^noimage}}sh-btn-ghost{{/noimage}} sh-btn-sm w-100" data-action="genimage" data-scene="{{id}}" data-replace="{{^noimage}}1{{/noimage}}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                    <span>{{#noimage}}{{#str}} generateimage, mod_aisafetyhazards, {{imagecredits}} {{/str}}{{/noimage}}{{^noimage}}{{#str}} regenerateimage, mod_aisafetyhazards, {{imagecredits}} {{/str}}{{/noimage}}</span>
+                </button>
+                {{/canai}}
+                <a class="sh-btn sh-btn-ghost sh-btn-sm w-100 mt-2" href="{{replaceurl}}">{{#str}} uploadownimage, mod_aisafetyhazards {{/str}}</a>
+                {{^noimage}}
+                <div class="sh-slidecard-meta mt-2 {{#autospots}}is-warn{{/autospots}}">{{#autospots}}{{#str}} spots_auto, mod_aisafetyhazards, {{autospots}} {{/str}}{{/autospots}}{{^autospots}}{{#str}} spots_placed, mod_aisafetyhazards {{/str}}{{/autospots}}</div>
+                <a class="sh-btn sh-btn-ghost sh-btn-sm w-100" href="{{spotsurl}}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="3"/><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"/></svg>
+                    <span>{{#str}} spots_button, mod_aisafetyhazards {{/str}}</span>
+                </a>
+                {{/noimage}}
+                {{/pictures}}
+                {{#voiceon}}
+                <div class="sh-slidecard-meta {{^voiceready}}is-warn{{/voiceready}}">
+                    {{#voiceready}}{{#str}} voice_scene_ready, mod_aisafetyhazards {{/str}}{{/voiceready}}{{voicemissing}}
+                </div>
+                {{/voiceon}}
+                {{#check}}
+                {{#toolong}}<div class="sh-slidecard-meta is-warn">{{#str}} toolong_scene, mod_aisafetyhazards {{/str}}</div>{{/toolong}}
+                <div class="sh-slidecard-meta {{^hazardsok}}is-warn{{/hazardsok}}">
+                    {{#hazardsok}}{{#str}} scenehazardsok, mod_aisafetyhazards {{/str}}{{/hazardsok}}{{^hazardsok}}{{#str}} sceneneedshazards, mod_aisafetyhazards {{/str}}{{/hazardsok}}
+                </div>
+                <div class="sh-slidecard-actions">
+                    <a class="sh-btn {{^hazardsok}}sh-btn-primary{{/hazardsok}}{{#hazardsok}}sh-btn-ghost{{/hazardsok}} sh-btn-sm" href="{{editurl}}">{{#str}} editscene, mod_aisafetyhazards {{/str}}</a>
+                    {{#upurl}}<a class="sh-iconbtn" href="{{upurl}}" title="{{#str}} moveleft, mod_aisafetyhazards {{/str}}" aria-label="{{#str}} moveleft, mod_aisafetyhazards {{/str}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>{{/upurl}}
+                    {{#downurl}}<a class="sh-iconbtn" href="{{downurl}}" title="{{#str}} moveright, mod_aisafetyhazards {{/str}}" aria-label="{{#str}} moveright, mod_aisafetyhazards {{/str}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></a>{{/downurl}}
+                    <a class="sh-iconbtn" href="{{deleteurl}}" title="{{#str}} delete {{/str}}" aria-label="{{#str}} delete {{/str}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></a>
+                </div>
+                {{/check}}
+            </div>
+        </div>
+        {{/cards}}
+    </div>
+
+
+    {{> mod_aisafetyhazards/setup_nav}}
+</div>

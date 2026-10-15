@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/aisafetyhazards/db" VERSION="20261015" COMMENT="XMLDB file for mod_aisafetyhazards"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="aisafetyhazards" COMMENT="AI Safety Hazards activities">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="industry" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="construction" SEQUENCE="false" COMMENT="Industry key from the catalogue, or custom"/>
+        <FIELD NAME="subindustry" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Sub-industry key from the catalogue, or custom"/>
+        <FIELD NAME="task" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Work task key from the catalogue, or custom"/>
+        <FIELD NAME="customindustry" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Industry name when industry is custom"/>
+        <FIELD NAME="customsubindustry" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Sub-industry name when subindustry is custom"/>
+        <FIELD NAME="customtask" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Work task when task is custom"/>
+        <FIELD NAME="contentlang" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="en" SEQUENCE="false" COMMENT="Language the scenes are written in"/>
+        <FIELD NAME="scenecount" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="5" SEQUENCE="false" COMMENT="How many scenes the builder asks for"/>
+        <FIELD NAME="imagestyle" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="photo" SEQUENCE="false"/>
+        <FIELD NAME="studymode" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Study: hazards and controls shown with their effect"/>
+        <FIELD NAME="practicemode" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Practice: a wrong label bounces back with the reason; keep going until all are right"/>
+        <FIELD NAME="testmode" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Test: every label counts, no feedback until the end; graded"/>
+        <FIELD NAME="passmark" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="70" SEQUENCE="false" COMMENT="Test score needed to pass, in percent; 0 none"/>
+        <FIELD NAME="shuffleoptions" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="sounds" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="voiceparts" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="situation,hazards,controls" SEQUENCE="false" COMMENT="What the voiceover reads, comma-separated"/>
+        <FIELD NAME="mustlisten" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Learners hear a scene's voiceover to the end before they can start"/>
+        <FIELD NAME="grade" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" DECIMALS="5"/>
+        <FIELD NAME="grademethod" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 highest, 2 average, 3 first, 4 last"/>
+        <FIELD NAME="maxattempts" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 means unlimited"/>
+        <FIELD NAME="completionallscenes" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="completionpasstest" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Completion: a test attempt reaches the pass mark"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="aisafetyhazards_scene" COMMENT="One moment of the work task, shown on one picture, with its hazards">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="aisafetyhazardsid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="title" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="context" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="What the worker is doing in this step of the task"/>
+        <FIELD NAME="imageprompt" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="English picture description for image generation"/>
+        <FIELD NAME="teachingnote" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Note for the teacher about what the scene teaches"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="aisafetyhazardsid" TYPE="foreign" FIELDS="aisafetyhazardsid" REFTABLE="aisafetyhazards" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="order" UNIQUE="false" FIELDS="aisafetyhazardsid, sortorder"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="aisafetyhazards_hazard" COMMENT="A hazard in a scene's picture (or a distractor: a hazard label that is not in the picture)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="sceneid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The hazard, such as Trench collapse"/>
+        <FIELD NAME="anchor" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="In English, what in the picture shows the hazard, for the picture and label placement"/>
+        <FIELD NAME="why" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Why it is a hazard: how someone could be hurt"/>
+        <FIELD NAME="likelihood" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="3" SEQUENCE="false" COMMENT="Likelihood before controls, 1 rare to 5 almost certain"/>
+        <FIELD NAME="consequence" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="3" SEQUENCE="false" COMMENT="Consequence before controls, 1 insignificant to 5 catastrophic"/>
+        <FIELD NAME="x" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" DECIMALS="4" COMMENT="Horizontal position on the picture, percent"/>
+        <FIELD NAME="y" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" DECIMALS="4" COMMENT="Vertical position on the picture, percent"/>
+        <FIELD NAME="placed" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 not placed, 1 placed by the teacher, 2 placed automatically"/>
+        <FIELD NAME="distractor" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 for a hazard label that is not in the picture"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="sceneid" TYPE="foreign" FIELDS="sceneid" REFTABLE="aisafetyhazards_scene" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="order" UNIQUE="false" FIELDS="sceneid, sortorder"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="aisafetyhazards_control" COMMENT="A label for one hazard: a way to eliminate it, reduce its risk, or PPE; right or wrong, tagged with its effect">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="hazardid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="reduce" SEQUENCE="false" COMMENT="eliminate, reduce or ppe: the row the label belongs to"/>
+        <FIELD NAME="text" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="correct" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 when it is a right answer for this hazard"/>
+        <FIELD NAME="eliminates" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Eliminate row: 1 when it removes the hazard; a right answer with 0 says it cannot reasonably be eliminated"/>
+        <FIELD NAME="level" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="administrative" SEQUENCE="false" COMMENT="Hierarchy of controls: elimination, substitution, isolation, engineering, administrative or ppe"/>
+        <FIELD NAME="dl" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Steps it lowers the likelihood, 0 to 4"/>
+        <FIELD NAME="dc" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Steps it lowers the consequence, 0 to 4"/>
+        <FIELD NAME="reason" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Why it works, or why it does not"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="hazardid" TYPE="foreign" FIELDS="hazardid" REFTABLE="aisafetyhazards_hazard" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="order" UNIQUE="false" FIELDS="hazardid, kind, sortorder"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="aisafetyhazards_attempt" COMMENT="Learner attempts">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="aisafetyhazardsid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="attempt" TYPE="int" LENGTH="6" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="state" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="inprogress" SEQUENCE="false" COMMENT="inprogress or finished"/>
+        <FIELD NAME="playmode" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="practice" SEQUENCE="false" COMMENT="study, practice or test"/>
+        <FIELD NAME="sceneorder" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Scenes in the order shown, with the order of each row of labels, as JSON"/>
+        <FIELD NAME="score" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="2" COMMENT="Percentage of right labels"/>
+        <FIELD NAME="safety" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="2" COMMENT="Percentage of the starting risk the learner's controls removed"/>
+        <FIELD NAME="timestart" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timefinish" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="aisafetyhazardsid" TYPE="foreign" FIELDS="aisafetyhazardsid" REFTABLE="aisafetyhazards" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="useractivity" UNIQUE="false" FIELDS="aisafetyhazardsid, userid, state"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="aisafetyhazards_choice" COMMENT="Each label a learner dropped in an attempt">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sceneid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="hazardid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The hazard the label was dropped on (hazard row: the spot on the picture)"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="hazard, eliminate, reduce, ppe, or done (the learner finished the row in Test)"/>
+        <FIELD NAME="itemid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The hazard label or control dropped"/>
+        <FIELD NAME="correct" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="attemptid" TYPE="foreign" FIELDS="attemptid" REFTABLE="aisafetyhazards_attempt" REFFIELDS="id"/>
+        <KEY NAME="sceneid" TYPE="foreign" FIELDS="sceneid" REFTABLE="aisafetyhazards_scene" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="attemptscene" UNIQUE="false" FIELDS="attemptid, sceneid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="aisafetyhazards_ailog" COMMENT="AI requests made by teachers (for rate limiting)">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="aisafetyhazardsid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="action" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="aisafetyhazardsid" TYPE="foreign" FIELDS="aisafetyhazardsid" REFTABLE="aisafetyhazards" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="usertime" UNIQUE="false" FIELDS="userid, timecreated"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="aisafetyhazards_aireq" COMMENT="Paid LMS Labs requests (scene drafts and pictures), kept so a request is never sent twice with a new key">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="aisafetyhazardsid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Teacher who asked"/>
+        <FIELD NAME="operation" TYPE="char" LENGTH="16" NOTNULL="true" SEQUENCE="false" COMMENT="scene, import or image"/>
+        <FIELD NAME="targetid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Scene the picture is for, or the scene a draft created"/>
+        <FIELD NAME="idemkey" TYPE="char" LENGTH="128" NOTNULL="true" SEQUENCE="false" COMMENT="Idempotency-Key sent with every try of this request"/>
+        <FIELD NAME="sitehash" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="SHA-1 of the LMS Labs Site ID the key was first sent with; the key is never sent for another site"/>
+        <FIELD NAME="body" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Exact JSON body sent with every try"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending, uncertain, completed, failed, conflict, expired or lost"/>
+        <FIELD NAME="errorcode" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="requestid" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="LMS Labs request id"/>
+        <FIELD NAME="result" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Accepted draft JSON (scene drafts), or the scenes an import creates once LMS Labs confirms the charge"/>
+        <FIELD NAME="charged" TYPE="int" LENGTH="6" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="balance" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="tries" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="aisafetyhazardsid" TYPE="foreign" FIELDS="aisafetyhazardsid" REFTABLE="aisafetyhazards" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idemkey" UNIQUE="true" FIELDS="idemkey"/>
+        <INDEX NAME="opstatus" UNIQUE="false" FIELDS="aisafetyhazardsid, operation, status"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

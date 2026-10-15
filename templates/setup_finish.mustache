@@ -1,0 +1,48 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_aisafetyhazards/setup_finish
+
+    Set-up step 8: what is ready, what is still missing, preview as a learner, done.
+
+    Example context (json):
+    {
+        "bar": {"current": 8, "total": 8, "steps": [{"number": 8, "name": "Finish", "done": false, "current": true, "dot": 0}]},
+        "title": "Finish", "ready": 8, "scenes": 8, "allready": true, "todo": [], "viewurl": "#", "courseurl": "#",
+        "nav": {"backurl": "#", "backlabel": "Back", "nexturl": null, "nextlabel": "", "blocked": ""}
+    }
+}}
+<div class="sh-wizard sh-finish">
+    <div class="sh-setup-head">
+        <h2 class="h3">{{#str}} setup_title, mod_aisafetyhazards {{/str}}</h2>
+        {{#bar}}{{> mod_aisafetyhazards/setup_steps}}{{/bar}}
+    </div>
+    <div class="sh-wstep">
+        <h3 class="sh-wstep-title">{{#allready}}{{#str}} finish_ready, mod_aisafetyhazards, {{ready}} {{/str}}{{/allready}}{{^allready}}{{#str}} finish_notready, mod_aisafetyhazards, { "ready": {{ready}}, "scenes": {{scenes}} } {{/str}}{{/allready}}</h3>
+        {{#allready}}<p>{{#str}} finish_ready_help, mod_aisafetyhazards {{/str}}</p>{{/allready}}
+        {{^allready}}
+        <ul class="sh-finish-list">{{#todo}}<li>{{.}}</li>{{/todo}}</ul>
+        <p class="sh-mini mt-2">{{#str}} finish_notready_help, mod_aisafetyhazards {{/str}}</p>
+        {{/allready}}
+        <div class="sh-setupnav">
+            <a class="sh-btn sh-btn-ghost" href="{{viewurl}}">{{#str}} finish_preview, mod_aisafetyhazards {{/str}}</a>
+            <span class="sh-grow"></span>
+            <a class="sh-btn sh-btn-primary" href="{{courseurl}}">{{#str}} finish_done, mod_aisafetyhazards {{/str}}</a>
+        </div>
+    </div>
+    {{> mod_aisafetyhazards/setup_nav}}
+</div>

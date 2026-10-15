@@ -1,0 +1,85 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_aisafetyhazards/view
+
+    Activity home: the work task, the ways to play (Study, Practice, Test), the learner's results and the start
+    buttons. The player replaces the home when the learner starts.
+
+    Example context (json):
+    {
+        "uniqid": "sh-1", "config": "{}", "ready": true, "canmanage": false, "canattempt": true, "canstart": true,
+        "starts": [{"mode": "study", "name": "Study", "label": "Start studying", "intro": "See every hazard and control.", "primary": false},
+            {"mode": "test", "name": "Test", "label": "Take the test", "intro": "Every label counts.", "primary": true}],
+        "nomore": false, "industry": "Construction", "subindustry": "Civil construction", "task": "Trenching",
+        "language": "English", "scenes": 5, "bestscore": 75, "hasbest": true,
+        "history": [{"number": 1, "score": 75, "safety": 80, "mode": "Test", "date": "27/09/26, 10:00"}], "hashistory": true,
+        "attemptsinfo": "", "setupurl": "#", "reporturl": "#", "dir": "ltr", "contentlang": "en"
+    }
+}}
+<div id="{{uniqid}}" class="sh-app" data-config="{{config}}">
+    <div class="sh-home" data-region="home">
+        <section class="sh-hero">
+            <div class="sh-hero-main">
+                <p class="sh-eyebrow">{{industry}} › {{subindustry}}</p>
+                <h3 class="sh-hero-title">{{#str}} herotitle, mod_aisafetyhazards, {{task}} {{/str}}</h3>
+                <p class="sh-hero-desc">{{#str}} herodesc, mod_aisafetyhazards {{/str}}</p>
+                <ul class="sh-facts">
+                    <li><span>{{#str}} scenesword, mod_aisafetyhazards {{/str}}</span><strong>{{scenes}}</strong></li>
+                    <li><span>{{#str}} hazardsword, mod_aisafetyhazards {{/str}}</span><strong>{{#str}} hazardsperscene, mod_aisafetyhazards {{/str}}</strong></li>
+                    <li><span>{{#str}} contentlang, mod_aisafetyhazards {{/str}}</span><strong>{{language}}</strong></li>
+                    {{#hasbest}}<li><span>{{#str}} bestscore, mod_aisafetyhazards {{/str}}</span><strong>{{bestscore}}%</strong></li>{{/hasbest}}
+                </ul>
+                <ol class="sh-howto">
+                    <li><span class="sh-howto-icon sh-row-hazard" aria-hidden="true">1</span>{{#str}} howto_hazard, mod_aisafetyhazards {{/str}}</li>
+                    <li><span class="sh-howto-icon sh-row-eliminate" aria-hidden="true">2</span>{{#str}} howto_eliminate, mod_aisafetyhazards {{/str}}</li>
+                    <li><span class="sh-howto-icon sh-row-reduce" aria-hidden="true">3</span>{{#str}} howto_reduce, mod_aisafetyhazards {{/str}}</li>
+                    <li><span class="sh-howto-icon sh-row-ppe" aria-hidden="true">4</span>{{#str}} howto_ppe, mod_aisafetyhazards {{/str}}</li>
+                </ol>
+            </div>
+            <div class="sh-startmodes">
+                {{#starts}}
+                <div class="sh-startmode sh-startmode-{{mode}}">
+                    <h4>{{name}}</h4>
+                    <p class="sh-mini">{{intro}}</p>
+                    <button type="button" class="sh-btn {{#primary}}sh-btn-primary{{/primary}}{{^primary}}sh-btn-ghost{{/primary}}" data-action="start" data-mode="{{mode}}">{{label}}</button>
+                </div>
+                {{/starts}}
+                {{#nomore}}<p class="sh-note">{{#str}} nomoreattempts, mod_aisafetyhazards {{/str}}</p>{{/nomore}}
+                {{^ready}}<p class="sh-note">{{#canmanage}}{{#str}} notready_manager, mod_aisafetyhazards {{/str}}{{/canmanage}}{{^canmanage}}{{#str}} notready_student, mod_aisafetyhazards {{/str}}{{/canmanage}}</p>{{/ready}}
+                {{#attemptsinfo}}<p class="sh-note">{{.}}</p>{{/attemptsinfo}}
+            </div>
+        </section>
+        {{#hashistory}}
+        <section class="sh-panel">
+            <h4 class="sh-panel-title">{{#str}} yourattempts, mod_aisafetyhazards {{/str}}</h4>
+            <table class="table table-sm sh-table">
+                <thead><tr><th scope="col">{{#str}} attempt, mod_aisafetyhazards {{/str}}</th><th scope="col">{{#str}} col_mode, mod_aisafetyhazards {{/str}}</th><th scope="col">{{#str}} score, mod_aisafetyhazards {{/str}}</th><th scope="col">{{#str}} safetyscore, mod_aisafetyhazards {{/str}}</th><th scope="col">{{#str}} date {{/str}}</th></tr></thead>
+                <tbody>{{#history}}<tr><td>{{number}}</td><td>{{mode}}</td><td>{{score}}%</td><td>{{safety}}%</td><td>{{date}}</td></tr>{{/history}}</tbody>
+            </table>
+        </section>
+        {{/hashistory}}
+        {{#canmanage}}
+        <nav class="sh-teacherbar" aria-label="{{#str}} teachertools, mod_aisafetyhazards {{/str}}">
+            <a class="sh-btn sh-btn-ghost sh-btn-sm" href="{{setupurl}}">{{#str}} setup_title, mod_aisafetyhazards {{/str}}</a>
+            {{#reporturl}}<a class="sh-btn sh-btn-ghost sh-btn-sm" href="{{reporturl}}">{{#str}} reports, mod_aisafetyhazards {{/str}}</a>{{/reporturl}}
+        </nav>
+        {{/canmanage}}
+    </div>
+    <div class="sh-player" data-region="player" dir="{{dir}}" lang="{{contentlang}}" hidden></div>
+    <div class="sh-live visually-hidden sr-only" aria-live="polite" data-region="live"></div>
+</div>

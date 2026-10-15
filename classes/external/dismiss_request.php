@@ -1,0 +1,65 @@
+<?php
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+namespace mod_aisafetyhazards\external;
+
+use core_external\external_function_parameters;
+use core_external\external_value;
+use mod_aisafetyhazards\local\ai\requests;
+
+/**
+ * Hides a stored LMS Labs request from the page (nothing is sent to LMS Labs).
+ *
+ * @package    mod_aisafetyhazards
+ * @copyright  2026 LMS Hosting Services
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class dismiss_request extends base {
+    /**
+     * Parameters.
+     *
+     * @return external_function_parameters
+     */
+    public static function execute_parameters(): external_function_parameters {
+        return new external_function_parameters([
+            'cmid' => new external_value(PARAM_INT, 'Course module id'),
+            'requestid' => new external_value(PARAM_INT, 'Request id in this site'),
+        ]);
+    }
+
+    /**
+     * Dismisses.
+     *
+     * @param int $cmid
+     * @param int $requestid
+     * @return array
+     */
+    public static function execute(int $cmid, int $requestid): array {
+        $params = self::validate_parameters(self::execute_parameters(), ['cmid' => $cmid, 'requestid' => $requestid]);
+        [, , $instance, $modcontext] = self::load_ai($params['cmid'], false);
+        $row = requests::dismiss(requests::get((int)$instance->id, $params['requestid']));
+        return requests::export($row, $modcontext);
+    }
+
+    /**
+     * Return structure.
+     *
+     * @return \core_external\external_single_structure
+     */
+    public static function execute_returns(): \core_external\external_single_structure {
+        return self::request_structure();
+    }
+}

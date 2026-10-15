@@ -1,0 +1,138 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_aisafetyhazards/report
+
+    Teacher reports: learners, scenes and attempts.
+
+    Example context (json):
+    {
+        "tabs": [{"name": "Learners", "url": "#", "active": true}], "learners": true, "scenes": false, "attempts": false,
+        "groupselector": "", "identityheaders": [{"name": "Email address"}], "hasrows": true, "paging": "", "downloads": "",
+        "rows": [{"fullname": "Ana Silva", "profileurl": "#", "identity": [{"value": "ana@example.com"}], "attempts": 1,
+            "inprogress": false, "best": "75%", "grade": "75%", "lastfinish": "1/10/26"}]
+    }
+}}
+<div id="sh-report" class="sh-report">
+    <nav class="sh-tabs" aria-label="{{#str}} reports, mod_aisafetyhazards {{/str}}">
+        {{#tabs}}<a class="sh-tab{{#active}} is-active{{/active}}" href="{{url}}" {{#active}}aria-current="page"{{/active}}>{{name}}</a>{{/tabs}}
+    </nav>
+    {{{groupselector}}}
+
+    {{#learners}}
+    <p class="sh-mini">{{#str}} report_learners_help, mod_aisafetyhazards {{/str}}</p>
+    {{#hasrows}}
+    <div class="table-responsive" tabindex="0" role="region" aria-label="{{#str}} report_learners, mod_aisafetyhazards {{/str}}">
+    <table class="table table-sm sh-table">
+        <thead><tr>
+            <th scope="col">{{#str}} fullname {{/str}}</th>
+            {{#identityheaders}}<th scope="col">{{name}}</th>{{/identityheaders}}
+            <th scope="col">{{#str}} col_attempts, mod_aisafetyhazards {{/str}}</th>
+            <th scope="col">{{#str}} col_bestscore, mod_aisafetyhazards {{/str}}</th>
+            <th scope="col">{{#str}} col_grade, mod_aisafetyhazards {{/str}}</th>
+            <th scope="col">{{#str}} col_lastfinish, mod_aisafetyhazards {{/str}}</th>
+        </tr></thead>
+        <tbody>
+        {{#rows}}
+        <tr>
+            <td><a href="{{profileurl}}">{{fullname}}</a></td>
+            {{#identity}}<td>{{value}}</td>{{/identity}}
+            <td>{{attempts}}{{#inprogress}} <span class="sh-mini">({{#str}} state_inprogress, mod_aisafetyhazards {{/str}})</span>{{/inprogress}}</td>
+            <td>{{best}}</td>
+            <td>{{grade}}</td>
+            <td>{{lastfinish}}</td>
+        </tr>
+        {{/rows}}
+        </tbody>
+    </table>
+    </div>
+    {{{paging}}}
+    {{{downloads}}}
+    {{/hasrows}}
+    {{^hasrows}}<p class="sh-note">{{#str}} nolearners, mod_aisafetyhazards {{/str}}</p>{{/hasrows}}
+    {{/learners}}
+
+    {{#scenes}}
+    <p class="sh-mini">{{#str}} report_scenes_help, mod_aisafetyhazards {{/str}}</p>
+    {{#hasrows}}
+    <div class="table-responsive" tabindex="0" role="region" aria-label="{{#str}} report_scenes, mod_aisafetyhazards {{/str}}">
+    <table class="table table-sm sh-table">
+        <thead><tr>
+            <th scope="col">#</th>
+            <th scope="col">{{#str}} col_scene, mod_aisafetyhazards {{/str}}</th>
+            <th scope="col">{{#str}} col_attempts, mod_aisafetyhazards {{/str}}</th>
+            <th scope="col">{{#str}} col_right, mod_aisafetyhazards {{/str}}</th>
+            <th scope="col">{{#str}} col_wrong, mod_aisafetyhazards {{/str}}</th>
+            <th scope="col">{{#str}} col_rightpct, mod_aisafetyhazards {{/str}}</th>
+        </tr></thead>
+        <tbody>
+        {{#rows}}
+        <tr class="{{#hard}}sh-hardrow{{/hard}}">
+            <td>{{number}}</td><td dir="auto">{{title}}</td><td>{{attempts}}</td><td>{{right}}</td>
+            <td>{{wrong}}</td><td>{{rightpct}}</td>
+        </tr>
+        {{/rows}}
+        </tbody>
+    </table>
+    </div>
+    {{/hasrows}}
+    {{^hasrows}}<p class="sh-note">{{#str}} noscenesyet, mod_aisafetyhazards {{/str}}</p>{{/hasrows}}
+    {{/scenes}}
+
+    {{#attempts}}
+    {{#hasrows}}
+    <form method="post" action="{{actionurl}}" data-region="attemptsform">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <div class="table-responsive" tabindex="0" role="region" aria-label="{{#str}} report_attempts, mod_aisafetyhazards {{/str}}">
+        <table class="table table-sm sh-table">
+            <thead><tr>
+                {{#canmanage}}<th scope="col"><input type="checkbox" data-action="selectall" aria-label="{{#str}} selectall {{/str}}"></th>{{/canmanage}}
+                <th scope="col">{{#str}} fullname {{/str}}</th>
+                {{#identityheaders}}<th scope="col">{{name}}</th>{{/identityheaders}}
+                <th scope="col">{{#str}} col_attempt, mod_aisafetyhazards {{/str}}</th>
+                <th scope="col">{{#str}} col_mode, mod_aisafetyhazards {{/str}}</th>
+                <th scope="col">{{#str}} col_state, mod_aisafetyhazards {{/str}}</th>
+                <th scope="col">{{#str}} col_started, mod_aisafetyhazards {{/str}}</th>
+                <th scope="col">{{#str}} col_duration, mod_aisafetyhazards {{/str}}</th>
+                <th scope="col">{{#str}} col_score, mod_aisafetyhazards {{/str}}</th>
+                <th scope="col">{{#str}} col_safety, mod_aisafetyhazards {{/str}}</th>
+            </tr></thead>
+            <tbody>
+            {{#rows}}
+            <tr>
+                {{#canmanage}}<td><input type="checkbox" name="attemptids[]" value="{{id}}" aria-label="{{#str}} select {{/str}} {{fullname}}"></td>{{/canmanage}}
+                <td>{{fullname}}</td>
+                {{#identity}}<td>{{value}}</td>{{/identity}}
+                <td>{{attempt}}</td><td>{{mode}}</td><td>{{state}}</td><td>{{started}}</td><td>{{duration}}</td><td>{{score}}</td><td>{{safety}}</td>
+            </tr>
+            {{/rows}}
+            </tbody>
+        </table>
+        </div>
+        {{#canmanage}}
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="submit" class="btn btn-danger" name="action" value="delete" data-action="deleteselected">{{#str}} deleteselected, mod_aisafetyhazards {{/str}}</button>
+            <button type="submit" class="btn btn-secondary" name="action" value="regrade">{{#str}} regradeall, mod_aisafetyhazards {{/str}}</button>
+        </div>
+        {{/canmanage}}
+    </form>
+    {{{paging}}}
+    {{{downloads}}}
+    {{/hasrows}}
+    {{^hasrows}}<p class="sh-note">{{#str}} noattempts, mod_aisafetyhazards {{/str}}</p>{{/hasrows}}
+    {{/attempts}}
+</div>

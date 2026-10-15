@@ -1,0 +1,37 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_aisafetyhazards/setup_steps
+
+    The set-up step bar. It shows progress only; teachers move with Back and Next.
+
+    Example context (json):
+    {
+        "current": 6, "total": 8,
+        "steps": [
+            {"number": 5, "name": "Create the scenes", "done": true, "current": false, "dot": 0},
+            {"number": 6, "name": "Pictures", "done": false, "current": true, "dot": 0},
+            {"number": 7, "name": "Check the scenes", "done": false, "current": false, "dot": 0}
+        ]
+    }
+}}
+<p class="sh-mini sh-setup-progress" data-region="setupprogress">{{#str}} setup_progress, mod_aisafetyhazards, { "current": {{current}}, "total": {{total}} } {{/str}}</p>
+<ol class="sh-wizard-steps sh-setupbar" aria-label="{{#str}} setup_title, mod_aisafetyhazards {{/str}}">
+    {{#steps}}
+    <li class="{{#done}}is-done{{/done}}{{#current}}is-active{{/current}}" {{#dot}}data-stepdot="{{dot}}"{{/dot}} {{#current}}aria-current="step"{{/current}}><span aria-hidden="true">{{number}}</span>{{name}}</li>
+    {{/steps}}
+</ol>

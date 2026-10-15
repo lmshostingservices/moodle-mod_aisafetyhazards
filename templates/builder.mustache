@@ -1,0 +1,103 @@
+{{!
+    @template mod_aisafetyhazards/builder
+
+    Set-up steps 1 and 2: the work task (industry, then sub-industry, then task, each list following the choice above
+    it), then the language, the number of scenes and the picture style. Back and Next move between them.
+
+    Example context (json):
+    {
+        "cmid": 1, "action": "#", "sesskey": "abc",
+        "bar": {"current": 1, "total": 7, "steps": [{"number": 1, "name": "Work task", "done": false, "current": true, "dot": 1}]},
+        "illustration": false, "photo": true, "customindustry": "", "customsubindustry": "", "customtask": "",
+        "industries": [{"key": "construction", "name": "Construction", "selected": true}],
+        "treejson": "{}",
+        "languages": [{"code": "en", "name": "English", "endonym": "English", "showendonym": false, "rtl": false, "selected": true}],
+        "scenecounts": [{"value": 5, "selected": true}]
+    }
+}}
+<form id="sh-wizard" class="sh-wizard" method="post" action="{{action}}" data-tree="{{treejson}}">
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
+    <input type="hidden" name="savechoices" value="1">
+    <div class="sh-setup-head">
+        <h2 class="h3">{{#str}} setup_title, mod_aisafetyhazards {{/str}}</h2>
+        {{#bar}}{{> mod_aisafetyhazards/setup_steps}}{{/bar}}
+    </div>
+
+    <fieldset class="sh-wstep" data-step="1">
+        <legend class="sh-wstep-title">{{#str}} q_task, mod_aisafetyhazards {{/str}}</legend>
+        <p class="sh-mini">{{#str}} q_task_help, mod_aisafetyhazards {{/str}}</p>
+
+        <div class="sh-tasklevel" data-level="industry">
+            <h3 class="sh-tasklevel-title"><span class="sh-tasklevel-no">1</span>{{#str}} q_industry, mod_aisafetyhazards {{/str}}</h3>
+            <div class="sh-cardgrid" data-region="industries">
+                {{#industries}}
+                <label class="sh-pick">
+                    <input type="radio" name="industry" value="{{key}}" {{#selected}}checked{{/selected}} required>
+                    <span class="sh-pick-body"><strong>{{name}}</strong></span>
+                </label>
+                {{/industries}}
+                <label class="sh-pick sh-pick-other">
+                    <input type="radio" name="industry" value="custom">
+                    <span class="sh-pick-body"><strong>{{#str}} other_own, mod_aisafetyhazards {{/str}}</strong></span>
+                </label>
+            </div>
+            <div class="sh-custom" data-custom="industry" hidden>
+                <label for="sh-customindustry">{{#str}} customindustry, mod_aisafetyhazards {{/str}}</label>
+                <input type="text" class="sh-input" id="sh-customindustry" name="customindustry" value="{{customindustry}}" maxlength="120" placeholder="{{#str}} customindustry_placeholder, mod_aisafetyhazards {{/str}}">
+            </div>
+        </div>
+
+        <div class="sh-tasklevel" data-level="subindustry" hidden>
+            <h3 class="sh-tasklevel-title"><span class="sh-tasklevel-no">2</span>{{#str}} q_subindustry, mod_aisafetyhazards {{/str}}</h3>
+            <div class="sh-cardgrid" data-region="subindustries"></div>
+            <div class="sh-custom" data-custom="subindustry" hidden>
+                <label for="sh-customsubindustry">{{#str}} customsubindustry, mod_aisafetyhazards {{/str}}</label>
+                <input type="text" class="sh-input" id="sh-customsubindustry" name="customsubindustry" value="{{customsubindustry}}" maxlength="120" placeholder="{{#str}} customsubindustry_placeholder, mod_aisafetyhazards {{/str}}">
+            </div>
+        </div>
+
+        <div class="sh-tasklevel" data-level="task" hidden>
+            <h3 class="sh-tasklevel-title"><span class="sh-tasklevel-no">3</span>{{#str}} q_worktask, mod_aisafetyhazards {{/str}}</h3>
+            <div class="sh-cardgrid" data-region="tasks"></div>
+            <div class="sh-custom" data-custom="task" hidden>
+                <label for="sh-customtask">{{#str}} customtask, mod_aisafetyhazards {{/str}}</label>
+                <input type="text" class="sh-input" id="sh-customtask" name="customtask" value="{{customtask}}" maxlength="120" placeholder="{{#str}} customtask_placeholder, mod_aisafetyhazards {{/str}}">
+            </div>
+        </div>
+        <p class="sh-taskpath" data-region="taskpath" aria-live="polite"></p>
+        <p class="sh-wizard-error" data-region="taskerror" hidden>{{#str}} q_task_none, mod_aisafetyhazards {{/str}}</p>
+    </fieldset>
+
+    <fieldset class="sh-wstep" data-step="2">
+        <legend class="sh-wstep-title">{{#str}} q_language, mod_aisafetyhazards {{/str}}</legend>
+        <p class="sh-mini">{{#str}} q_language_help, mod_aisafetyhazards {{/str}}</p>
+        <div class="sh-cardgrid">
+            {{#languages}}
+            <label class="sh-pick">
+                <input type="radio" name="contentlang" value="{{code}}" {{#selected}}checked{{/selected}} required>
+                <span class="sh-pick-body">
+                    <strong>{{name}}</strong>
+                    {{#showendonym}}<span class="sh-pick-endonym" lang="{{code}}" {{#rtl}}dir="rtl"{{/rtl}}>{{endonym}}</span>{{/showendonym}}
+                </span>
+            </label>
+            {{/languages}}
+        </div>
+        <div class="sh-sizes">
+            <label>{{#str}} scenecount, mod_aisafetyhazards {{/str}}
+                <select name="scenecount" class="custom-select form-select">{{#scenecounts}}<option value="{{value}}" {{#selected}}selected{{/selected}}>{{value}}</option>{{/scenecounts}}</select>
+            </label>
+            <label>{{#str}} imagestyle, mod_aisafetyhazards {{/str}}
+                <select name="imagestyle" class="custom-select form-select">
+                    <option value="photo" {{#photo}}selected{{/photo}}>{{#str}} imagestyle_photo_name, mod_aisafetyhazards {{/str}}</option>
+                    <option value="illustration" {{#illustration}}selected{{/illustration}}>{{#str}} imagestyle_illustration_name, mod_aisafetyhazards {{/str}}</option>
+                </select>
+            </label>
+        </div>
+    </fieldset>
+
+    <div class="sh-wizard-actions">
+        <button type="button" class="sh-btn sh-btn-ghost" data-action="prev">{{#str}} previous, mod_aisafetyhazards {{/str}}</button>
+        <button type="button" class="sh-btn sh-btn-primary" data-action="nextstep">{{#str}} next, mod_aisafetyhazards {{/str}}</button>
+        <button type="submit" class="sh-btn sh-btn-primary" data-action="save">{{#str}} builder_save, mod_aisafetyhazards {{/str}}</button>
+    </div>
+</form>

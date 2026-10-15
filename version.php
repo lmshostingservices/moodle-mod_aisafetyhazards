@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_aisafetyhazards';
-$plugin->version   = 2026101506;
-$plugin->release   = '1.0.6';
+$plugin->version   = 2026101507;
+$plugin->release   = '1.0.7';
 $plugin->requires  = 2024042200; // Moodle 4.4.
 $plugin->supported = [404, 503];
 $plugin->maturity  = MATURITY_STABLE;

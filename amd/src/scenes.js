@@ -35,6 +35,7 @@ import {loadStrings, fmt} from 'mod_aisafetyhazards/ui';
  * @param {string} busytext shown on the locked buttons' tooltip
  */
 const lockNav = (on, busytext = '') => {
+    document.body.classList.toggle('sh-busy', on);
     document.querySelectorAll('.sh-setupnav a, .sh-setupnav button, .sh-setup-steps a').forEach((link) => {
         link.classList.toggle('disabled', on);
         if (on) {
@@ -72,12 +73,38 @@ export const init = async(selector) => {
         'genall_progress', 'confirm_title', 'confirm_create', 'voice_confirm', 'voice_progress',
         'voice_busy', 'genall_busy', 'voice_stop', 'voice_stopping', 'voice_quoting', 'voice_confirm_head',
         'voice_confirm_headone', 'voice_confirm_new', 'voice_confirm_newone', 'voice_confirm_free', 'voice_confirm_freeone',
-        'voice_confirm_note']);
+        'voice_confirm_note', 'pictures_alldone']);
     const region = root.querySelector('[data-region="aireqs"]');
-    // A delivered picture is already saved: show it by reloading the page.
-    const done = (request) => {
+    // A delivered picture is already saved: its card (and the step's Next button) are drawn again from the page,
+    // so it shows at once, without reloading.
+    let bindCard = () => null;
+    const refresh = async(sceneids) => {
+        try {
+            const html = await (await fetch(window.location.href, {credentials: 'same-origin'})).text();
+            const page = new DOMParser().parseFromString(html, 'text/html');
+            sceneids.forEach((id) => {
+                const now = root.querySelector('.sh-slidecard[data-scene="' + id + '"]');
+                const fresh = page.querySelector('.sh-slidecard[data-scene="' + id + '"]');
+                if (now && fresh) {
+                    now.replaceWith(fresh);
+                    bindCard(fresh);
+                }
+            });
+            const nav = document.querySelector('.sh-setupnav');
+            const freshnav = page.querySelector('.sh-setupnav');
+            if (nav && freshnav && !document.body.classList.contains('sh-busy')) {
+                nav.replaceWith(freshnav);
+            }
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+    const done = async(request) => {
         Requests.toast(request);
-        window.setTimeout(() => window.location.reload(), 2500);
+        if (!await refresh([request.targetid])) {
+            window.setTimeout(() => window.location.reload(), 2500);
+        }
     };
     Requests.init(region, done);
 
@@ -101,7 +128,7 @@ export const init = async(selector) => {
     const create = (sceneid) => Promise.resolve(Ajax.call([{methodname: 'mod_aisafetyhazards_generate_image',
         args: {sceneid}}], true, true, false, 200000)[0]);
 
-    root.querySelectorAll('[data-action="genimage"]').forEach((btn) => {
+    bindCard = (scope) => scope.querySelectorAll('[data-action="genimage"]').forEach((btn) => {
         btn.addEventListener('click', async() => {
             if (!await confirm(btn.dataset.replace === '1' ? S.genone_confirm_replace : S.genone_confirm)) {
                 return;
@@ -125,6 +152,7 @@ export const init = async(selector) => {
             }
         });
     });
+    bindCard(root);
 
     // Voiceover: every missing clip, one after another; the run stops at the first clip that is not delivered.
     const voice = root.querySelector('[data-action="genvoice"]');
@@ -257,6 +285,7 @@ export const init = async(selector) => {
                     }
                     made++;
                     label.dataset.base = progress();
+                    await refresh([request.targetid]);
                 }
             };
             try {
@@ -267,10 +296,17 @@ export const init = async(selector) => {
             stop();
             delete label.dataset.base;
             lockNav(false);
-            if (made > 0) {
-                window.location.reload();
+            // The step's Next button, now that the run is over.
+            await refresh([]);
+            if (made === ids.length) {
+                // Every missing picture is made: the button is no longer needed.
+                const note = document.createElement('p');
+                note.className = 'sh-ok mb-0';
+                note.textContent = S.pictures_alldone;
+                all.replaceWith(note);
                 return;
             }
+            all.dataset.scenes = queue.join(',');
             all.disabled = false;
             label.textContent = original;
         });

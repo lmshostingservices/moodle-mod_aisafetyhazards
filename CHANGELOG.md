@@ -2,6 +2,13 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.7] - 2026-10-15
+
+### Fixed
+
+- New pictures appear on their scene card as soon as each one is made, with no page refresh: the card (with its hazard spots and buttons) and the step's Next button are redrawn in place. When every missing picture is made, the step says so.
+- Scene titles with "&" showed as "&amp;" on the scene cards, the reports and the requests list.
+
 ## [v1.0.6] - 2026-10-15
 
 ### Fixed

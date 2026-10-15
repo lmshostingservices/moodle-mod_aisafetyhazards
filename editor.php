@@ -100,7 +100,7 @@ echo $OUTPUT->header();
 echo $OUTPUT->render_from_template(
     'mod_aisafetyhazards/editor',
     [
-    'title' => format_string($scene->title, true, ['context' => $context]),
+    'title' => format_string($scene->title, true, ['context' => $context, 'escape' => false]),
     'bar' => \mod_aisafetyhazards\local\setuppath::bar(\mod_aisafetyhazards\local\setuppath::CHECK),
     'image' => $image,
     'backurl' => $backurl->out(false),

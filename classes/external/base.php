@@ -116,6 +116,7 @@ abstract class base extends external_api {
             'title' => new \core_external\external_value(PARAM_TEXT, 'Brief or scene title'),
             'message' => new \core_external\external_value(PARAM_TEXT, 'What happened and what to do next'),
             'requestid' => new \core_external\external_value(PARAM_ALPHANUMEXT, 'LMS Labs reference'),
+            'targetid' => new \core_external\external_value(PARAM_INT, 'The scene the request is for (0 for drafts and imports)'),
             'canrecheck' => new \core_external\external_value(PARAM_BOOL, 'Check again is possible (same key and body)'),
             'candismiss' => new \core_external\external_value(PARAM_BOOL, 'Can be dismissed'),
             'poll' => new \core_external\external_value(PARAM_BOOL, 'Still in progress at LMS Labs'),

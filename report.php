@@ -263,7 +263,7 @@ if ($tab === 'scenes') {
             $pct = $total ? round((int)$st->rights / $total * 100) : null;
             $rows[] = [
                 'number' => $n,
-                'title' => format_string($scene->title, true, ['context' => $context]),
+                'title' => format_string($scene->title, true, ['context' => $context, 'escape' => false]),
                 'attempts' => $st ? (int)$st->attempts : 0,
                 'right' => $st ? (int)$st->rights : 0,
                 'wrong' => $st ? (int)$st->wrongs : 0,

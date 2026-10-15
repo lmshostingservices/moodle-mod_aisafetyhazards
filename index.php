@@ -56,7 +56,7 @@ if (!$instances) {
 $rows = [];
 foreach ($instances as $instance) {
     $rows[] = [
-        'name' => format_string($instance->name),
+        'name' => format_string($instance->name, true, ['escape' => false]),
         'url' => (new moodle_url('/mod/aisafetyhazards/view.php', ['id' => $instance->coursemodule]))->out(false),
         'dimmed' => !$instance->visible,
         'industry' => implode(' › ', array_slice(catalogue::names($instance), 0, 2)),

@@ -172,7 +172,8 @@ foreach ($scenes as $s) {
     foreach ($hazards as $h) {
         if (empty($h['distractor'])) {
             $spots[] = ['number' => count($spots) + 1, 'x' => (float)$h['x'], 'y' => (float)$h['y'],
-                'name' => format_string($h['name'], true, ['context' => $context]), 'auto' => (int)$h['placed'] !== 1];
+                'name' => format_string($h['name'], true, ['context' => $context, 'escape' => false]),
+                'auto' => (int)$h['placed'] !== 1];
             $auto += (int)$h['placed'] !== 1 ? 1 : 0;
         }
     }
@@ -180,7 +181,7 @@ foreach ($scenes as $s) {
     $cards[] = [
         'id' => (int)$s->id,
         'number' => $i,
-        'title' => format_string($s->title, true, ['context' => $context]),
+        'title' => format_string($s->title, true, ['context' => $context, 'escape' => false]),
         'image' => $url,
         'noimage' => !$url,
         'waiting' => $waiting,

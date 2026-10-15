@@ -2,6 +2,16 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.4] - 2026-10-15
+
+### Changed
+
+- The label box now sits under the picture in every mode, so nothing covers the picture. The picture is a little smaller to make room, the scene title and task sit in one compact block, and the side panel with the gauges and the risk matrix takes the space left (the matrix grows up to 340 pixels, also in full screen).
+
+### Fixed
+
+- A label clicked or dragged while the previous one was still being marked was ignored, so some answers seemed slow or did nothing. Every label now shows "checking" at once and is marked in order.
+
 ## [v1.0.3] - 2026-10-15
 
 ### Fixed

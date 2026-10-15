@@ -1488,7 +1488,18 @@
 }
 .path-mod-aisafetyhazards .sh-scene-title {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.15rem;
+    line-height: 1.25;
+}
+.path-mod-aisafetyhazards .sh-scene-titles .sh-eyebrow {
+    margin: 0;
+    font-size: .7rem;
+}
+.path-mod-aisafetyhazards .sh-scene-context {
+    margin: 2px 0 0;
+    font-size: .9rem;
+    line-height: 1.4;
+    color: var(--sh-text-2);
 }
 .path-mod-aisafetyhazards .sh-voicenote {
     flex-basis: 100%;
@@ -1516,31 +1527,43 @@
 }
 .path-mod-aisafetyhazards .sh-play-main {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 290px;
+    grid-template-columns: minmax(0, max-content) minmax(300px, 1fr);
     gap: 14px;
     align-items: start;
 }
 .path-mod-aisafetyhazards .sh-play .sh-figure {
     position: relative;
-    overflow: hidden;
-    border-radius: 16px;
-    background: #0f172a;
-    box-shadow: var(--sh-shadow-md);
+    display: grid;
+    gap: 8px;
+    min-width: 0;
     user-select: none;
     touch-action: none;
 }
-/* The picture is never taller than the screen leaves room for, so the whole slide stays above the fold. */
-@media (min-height: 560px) {
+
+/* The picture leaves room under it for the label box, so the whole slide fits on the screen. */
+@media (min-height: 700px) {
     .path-mod-aisafetyhazards .sh-play .sh-figure {
-        max-width: calc((100vh - 300px) * 1.6);
+        max-width: calc((100vh - 430px) * 1.6);
     }
-    .path-mod-aisafetyhazards .sh-play-main {
-        grid-template-columns: minmax(0, max-content) 290px;
-        justify-content: space-between;
+}
+
+@media (min-height: 700px) {
+    /* Full screen: room for the buttons under the label box too. */
+    .path-mod-aisafetyhazards [data-region="player"].is-full .sh-play .sh-figure {
+        max-width: calc((100vh - 470px) * 1.6);
+    }
+}
+
+@media (min-height: 560px) and (max-height: 699.98px) {
+    .path-mod-aisafetyhazards .sh-play .sh-figure {
+        max-width: calc((100vh - 230px) * 1.6);
     }
 }
 .path-mod-aisafetyhazards .sh-pic {
     position: relative;
+    border-radius: 16px;
+    background: #0f172a;
+    box-shadow: var(--sh-shadow-md);
 }
 .path-mod-aisafetyhazards .sh-play .sh-pic > img {
     display: block;
@@ -1548,74 +1571,24 @@
     height: auto;
     aspect-ratio: 16 / 10;
     object-fit: cover;
+    border-radius: 16px;
 }
-.path-mod-aisafetyhazards .sh-figure.is-over,
-.path-mod-aisafetyhazards .sh-figure.is-picking {
+.path-mod-aisafetyhazards .sh-figure.is-over .sh-pic,
+.path-mod-aisafetyhazards .sh-figure.is-picking .sh-pic {
     box-shadow: 0 0 0 4px var(--sh-primary), var(--sh-shadow-md);
 }
-.path-mod-aisafetyhazards .sh-figure.is-shake {
+.path-mod-aisafetyhazards .sh-figure.is-shake .sh-pic {
     animation: sh-shake .45s;
 }
 
-/* The label box: a see-through panel over the bottom of the picture, one row per kind of label. */
+/* The label box: under the picture, so nothing covers the hazards; one row per kind of label. */
 .path-mod-aisafetyhazards .sh-labelbox {
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    z-index: 4;
     display: grid;
     gap: 4px;
-    max-height: 52%;
     padding: 6px 8px;
-    overflow-y: auto;
     border-radius: 14px;
-    background: rgba(15, 23, 42, .58);
-    backdrop-filter: blur(6px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
-    transition: transform .3s var(--sh-ease);
-}
-.path-mod-aisafetyhazards .sh-labelbox.is-collapsed {
-    transform: translateY(calc(100% - 34px));
-}
-/* Study shows every label with its reason: the box sits under the picture, so nothing covers the hazards. */
-.path-mod-aisafetyhazards .sh-play .sh-figure.is-study {
-    overflow: visible;
-    background: transparent;
-    box-shadow: none;
-}
-.path-mod-aisafetyhazards .sh-play .sh-figure.is-study .sh-pic > img {
-    border-radius: 14px;
-}
-.path-mod-aisafetyhazards .sh-figure.is-study .sh-labelbox {
-    position: static;
-    max-height: none;
-    margin-top: 8px;
     background: #1d2939;
-    backdrop-filter: none;
-}
-.path-mod-aisafetyhazards .sh-figure.is-study .sh-labelbox-toggle {
-    display: none;
-}
-.path-mod-aisafetyhazards .sh-labelbox-toggle {
-    justify-self: end;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 10px;
-    border: 0;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .15);
-    color: #fff;
-    font-size: .75rem;
-}
-.path-mod-aisafetyhazards .sh-labelbox-toggle svg {
-    width: 14px;
-    height: 14px;
-    transform: rotate(90deg);
-}
-.path-mod-aisafetyhazards .sh-labelbox.is-collapsed .sh-labelbox-toggle svg {
-    transform: rotate(-90deg);
+    box-shadow: var(--sh-shadow-sm);
 }
 .path-mod-aisafetyhazards .sh-lrow {
     display: grid;
@@ -1713,6 +1686,20 @@
     color: rgba(255, 255, 255, .85);
     font-size: .8rem;
     font-style: italic;
+}
+.path-mod-aisafetyhazards .sh-chip.is-checking {
+    opacity: .6;
+    animation: sh-checking .8s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes sh-checking {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(.95);
+    }
 }
 .path-mod-aisafetyhazards .sh-chip {
     display: inline-flex;
@@ -1851,7 +1838,7 @@
 }
 .path-mod-aisafetyhazards .sh-gauge svg {
     width: 100%;
-    max-width: 130px;
+    max-width: 200px;
 }
 .path-mod-aisafetyhazards .sh-gauge-label {
     font-size: .75rem;
@@ -1932,8 +1919,10 @@
     position: relative;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 2px;
-    width: 150px;
+    gap: 3px;
+    width: 100%;
+    max-width: 340px;
+    justify-self: center;
     aspect-ratio: 1;
 }
 .path-mod-aisafetyhazards .sh-cell {

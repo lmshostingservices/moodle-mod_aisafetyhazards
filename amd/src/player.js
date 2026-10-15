@@ -48,10 +48,10 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'listen', 'listen_stop', 'spot', 'spot_found', 'activehazard', 'hazard_n', 'controls_applied', 'none_yet',
     'right', 'wrong', 'fb_right', 'fb_wrong', 'fb_lowers', 'fb_lowers_l', 'fb_lowers_c', 'fb_removes', 'fb_nochange',
     'fb_hazardfound', 'fb_testsaved', 'fb_cannot', 'test_gauges', 'scenedone', 'scenedone_test', 'study_next', 'study_shown',
-    'study_wrong', 'study_hazards', 'labelbox', 'labelbox_hide', 'labelbox_show', 'drag_help', 'picked', 'dropon',
+    'study_wrong', 'study_hazards', 'labelbox', 'drag_help', 'picked', 'dropon',
     'result_title', 'result_score', 'result_safety', 'result_right', 'result_wrong', 'result_passed', 'result_notpassed',
     'result_passmark', 'result_missed', 'result_wrongchosen', 'result_labelled', 'result_perfect', 'result_start', 'result_end',
-    'tryagain', 'next_study', 'next_practice', 'next_test', 'attemptsleft', 'situation', 'eliminated', 'matrix',
+    'tryagain', 'next_study', 'next_practice', 'next_test', 'attemptsleft', 'eliminated', 'matrix',
     'rating_low', 'rating_medium', 'rating_high', 'rating_extreme', 'rating_eliminated', 'gauge_value',
     ...LIKELIHOOD.map((k) => 'l_' + k), ...CONSEQUENCE.map((k) => 'c_' + k), ...LEVELS.map((k) => 'level_' + k)];
 
@@ -425,6 +425,10 @@ class Player {
         const titles = el('div', 'sh-scene-titles');
         titles.append(el('span', 'sh-eyebrow', {text: fmt(S.scene_of, {number: scene.number, total: this.data.scenes.length})}),
             el('h3', 'sh-scene-title', {dir: 'auto', text: scene.title}));
+        if (scene.context) {
+            // What is happening in this step of the task, under the title (kept short to leave room for the picture).
+            titles.appendChild(el('p', 'sh-scene-context', {dir: 'auto', text: scene.context}));
+        }
         head.appendChild(titles);
         if (scene.voice && scene.voice.length) {
             const listen = button('sh-btn sh-btn-ghost sh-btn-sm', S.listen, 'sound', () => {
@@ -445,27 +449,16 @@ class Player {
             head.appendChild(el('p', 'sh-voicenote', {text: scene.voicenote}));
         }
         wrap.appendChild(head);
-        if (scene.context) {
-            const ctx = el('div', 'sh-situation');
-            ctx.append(el('span', 'sh-situation-label', {text: S.situation}), el('p', '', {dir: 'auto', text: scene.context}));
-            wrap.appendChild(ctx);
-        }
 
         const main = el('div', 'sh-play-main');
-        // The picture with its spots and the label box over it.
-        this.figure = el('div', 'sh-figure' + (this.mode === 'study' ? ' is-study' : ''));
-        // The spots sit on the picture itself, so they stay in place when the label box is under it.
+        // The picture with its spots, and the label box under it (nothing covers the picture).
+        this.figure = el('div', 'sh-figure');
         const pic = el('div', 'sh-pic');
         pic.appendChild(el('img', '', {src: scene.image, alt: '', draggable: 'false'}));
         this.spotnodes = new Map();
         scene.spots.forEach((spot) => pic.appendChild(this.spotNode(spot)));
         this.figure.appendChild(pic);
         this.box = el('div', 'sh-labelbox', {role: 'group', 'aria-label': S.labelbox});
-        const toggle = button('sh-labelbox-toggle', S.labelbox_hide, 'next', () => {
-            const hidden = this.box.classList.toggle('is-collapsed');
-            toggle.querySelector('span').textContent = hidden ? S.labelbox_show : S.labelbox_hide;
-        });
-        this.box.appendChild(toggle);
         this.rows = {};
         ROWS.forEach((row) => {
             const r = el('div', 'sh-lrow sh-row-' + row, {'data-row': row});
@@ -773,7 +766,11 @@ class Player {
         if (study && row !== 'hazard') {
             cls += c.correct ? ' is-right' : ' is-wrongans';
         }
+        if (this.pending && this.pending.has(row + ':' + c.id)) {
+            cls += ' is-checking';
+        }
         const node = el('button', cls, {type: 'button', dir: 'auto', disabled: !live || study ? true : null,
+            'data-label': row + ':' + c.id,
             'aria-pressed': this.picked && this.picked.id === c.id ? 'true' : 'false'});
         node.appendChild(el('span', 'sh-chip-text', {text: c.text}));
         if (study && row !== 'hazard') {
@@ -817,7 +814,7 @@ class Player {
      * @param {object} label
      */
     drag(e, node, label) {
-        if (e.button > 0 || this.busy) {
+        if (e.button > 0) {
             return;
         }
         const sx = e.clientX;
@@ -893,13 +890,39 @@ class Player {
      * @param {object|null} spot
      * @param {object} label {id, row, text}
      */
-    async dropOn(spot, label) {
+    dropOn(spot, label) {
         this.picked = null;
         this.figure.classList.remove('is-picking');
-        if (!spot || this.busy || this.mode === 'study') {
+        if (!spot || this.mode === 'study' || (label.row === 'hazard' && spot.found)) {
             return;
         }
-        if (label.row === 'hazard' && spot.found) {
+        const key = label.row + ':' + label.id;
+        this.pending = this.pending || new Set();
+        if (this.pending.has(key)) {
+            return;
+        }
+        // Shown at once, before the marking comes back from the server: the label is "checking", so a click is never
+        // lost or looks ignored. Labels dropped quickly one after another are marked in order.
+        this.pending.add(key);
+        const node = this.box.querySelector('[data-label="' + key + '"]');
+        node?.classList.add('is-checking');
+        const scene = this.scene;
+        this.queue = (this.queue || Promise.resolve()).then(() => this.mark(scene, spot, label)).catch((err) => this.error(err))
+            .finally(() => {
+            this.pending.delete(key);
+            this.box.querySelector('[data-label="' + key + '"]')?.classList.remove('is-checking');
+        });
+    }
+
+    /**
+     * Sends one dropped label and shows the result.
+     *
+     * @param {object} scene the scene it was dropped in
+     * @param {object} spot
+     * @param {object} label
+     */
+    async mark(scene, spot, label) {
+        if (scene !== this.scene || (label.row === 'hazard' && spot.found)) {
             return;
         }
         this.busy = true;
@@ -907,14 +930,16 @@ class Player {
         let result;
         try {
             result = await Ajax.call([{methodname: 'mod_aisafetyhazards_drop_label', args: {attemptid: this.data.attemptid,
-                sceneid: this.scene.sceneid, kind: label.row, hazardid: spot.id, itemid: label.id}}])[0];
+                sceneid: scene.sceneid, kind: label.row, hazardid: spot.id, itemid: label.id}}])[0];
         } catch (err) {
             this.busy = false;
             this.error(err);
             return;
         }
         this.busy = false;
-        this.apply(spot, label, result, before);
+        if (scene === this.scene) {
+            this.apply(spot, label, result, before);
+        }
     }
 
     /**
@@ -923,14 +948,27 @@ class Player {
      * @param {object} spot
      * @param {string} row
      */
-    async doneRow(spot, row) {
-        if (this.busy) {
+    doneRow(spot, row) {
+        const scene = this.scene;
+        // After any label still being marked, so the row ends with every label the learner chose.
+        this.queue = (this.queue || Promise.resolve()).then(() => this.endRow(scene, spot, row)).catch((err) => this.error(err));
+    }
+
+    /**
+     * Sends "Done with this row" and shows the result.
+     *
+     * @param {object} scene
+     * @param {object} spot
+     * @param {string} row
+     */
+    async endRow(scene, spot, row) {
+        if (scene !== this.scene || spot.done[row]) {
             return;
         }
         this.busy = true;
         try {
             const result = await Ajax.call([{methodname: 'mod_aisafetyhazards_done_row', args: {attemptid: this.data.attemptid,
-                sceneid: this.scene.sceneid, hazardid: spot.id, kind: row}}])[0];
+                sceneid: scene.sceneid, hazardid: spot.id, kind: row}}])[0];
             this.busy = false;
             this.apply(spot, null, result, null);
         } catch (err) {

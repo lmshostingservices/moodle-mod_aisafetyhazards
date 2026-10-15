@@ -169,8 +169,13 @@ class setting_activation extends \admin_setting {
         $html = html_writer::tag('p', s($str('act_intro') . ' ' . $str('act_notproof')));
         $html .= html_writer::tag('dl', $table, ['class' => 'row mb-2']);
         if ($pending) {
-            $html .= html_writer::div(s($str('act_pendingnote', userdate($pending['time'])) . ' ' .
-                $str('act_blocked_pending')), 'alert alert-warning');
+            $html .= html_writer::div(
+                s(
+                    $str('act_pendingnote', userdate($pending['time'])) . ' ' .
+                    $str('act_blocked_pending')
+                ),
+                'alert alert-warning'
+            );
         }
         $html .= html_writer::div(
             $button('check', $str('act_check'), false, $source === 'missing') . ' ' .

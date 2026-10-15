@@ -129,11 +129,17 @@ class voiceover {
             set_config('voiceprice', is_int($price) ? (string)$price : '', 'mod_aisafetyhazards');
             // Free remakes are used only once LMS Labs says it takes the new fields (until then it refuses them).
             $remakes = !empty(lmslabs::$lasttariff['clipRefSupported']) && !empty(lmslabs::$lasttariff['maxCreditsRequired']);
-            set_config('voiceremakes', $remakes ? json_encode([
-                'on' => 1,
-                'limit' => (int)(lmslabs::$lasttariff['ttsRemakeLimit'] ?? 10),
-                'days' => (int)(lmslabs::$lasttariff['ttsRemakeWindowDays'] ?? 30),
-            ]) : '', 'mod_aisafetyhazards');
+            set_config(
+                'voiceremakes',
+                $remakes ? json_encode(
+                    [
+                    'on' => 1,
+                    'limit' => (int)(lmslabs::$lasttariff['ttsRemakeLimit'] ?? 10),
+                    'days' => (int)(lmslabs::$lasttariff['ttsRemakeWindowDays'] ?? 30),
+                    ]
+                ) : '',
+                'mod_aisafetyhazards'
+            );
         }
         return $locales ?: $kept;
     }
@@ -162,8 +168,13 @@ class voiceover {
      */
     public static function clipref(stdClass $instance, int $sceneid, array $segment): string {
         // A shared heading belongs to the activity (item 0), not to one scene.
-        return hash('sha256', json_encode(['mod_aisafetyhazards', (string)get_site_identifier(), (int)$instance->id, $sceneid,
-            (string)$segment['part'], (int)($segment['ref'] ?? $segment['line']), (int)($segment['clip'] ?? 0)]));
+        return hash(
+            'sha256',
+            json_encode(
+                ['mod_aisafetyhazards', (string)get_site_identifier(), (int)$instance->id, $sceneid,
+                (string)$segment['part'], (int)($segment['ref'] ?? $segment['line']), (int)($segment['clip'] ?? 0)]
+            )
+        );
     }
 
     /**
@@ -503,9 +514,12 @@ class voiceover {
         $fs = get_file_storage();
         $name = self::filename($segment);
         if (!$fs->file_exists($context->id, 'mod_aisafetyhazards', self::FILEAREA, (int)$scene->id, '/', $name)) {
-            $fs->create_file_from_string(['contextid' => $context->id, 'component' => 'mod_aisafetyhazards',
+            $fs->create_file_from_string(
+                ['contextid' => $context->id, 'component' => 'mod_aisafetyhazards',
                 'filearea' => self::FILEAREA, 'itemid' => (int)$scene->id, 'filepath' => '/',
-                'filename' => self::filename($segment), 'mimetype' => 'audio/mpeg'], $mp3);
+                'filename' => self::filename($segment), 'mimetype' => 'audio/mpeg'],
+                $mp3
+            );
         }
     }
 

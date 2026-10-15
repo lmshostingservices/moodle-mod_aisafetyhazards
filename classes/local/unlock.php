@@ -242,8 +242,11 @@ final class unlock {
         $text = get_string($key, 'mod_aisafetyhazards');
         $html = $OUTPUT->notification($text, \core\output\notification::NOTIFY_WARNING, false);
         if ($url !== '') {
-            $html .= \html_writer::link($url, get_string('notactivated_open', 'mod_aisafetyhazards'),
-                ['class' => 'btn btn-primary']);
+            $html .= \html_writer::link(
+                $url,
+                get_string('notactivated_open', 'mod_aisafetyhazards'),
+                ['class' => 'btn btn-primary']
+            );
         }
         return $html;
     }
@@ -271,9 +274,14 @@ final class unlock {
             self::save($state);
             return $state;
         }
-        [$status, $data] = self::request('POST', self::url(self::VERIFY), [
+        [$status, $data] = self::request(
+            'POST',
+            self::url(self::VERIFY),
+            [
             'pluginId' => self::PLUGINID, 'siteId' => $creds['siteid'], 'apiKey' => $creds['apikey'],
-        ], 20);
+            ],
+            20
+        );
         if ($status === 200 && $data !== null && is_bool($data['unlocked'] ?? null)) {
             $state = ['status' => $data['unlocked'] ? 'unlocked' : 'locked'] + self::balance($data) + [
                 'unlockedat' => self::time($data['unlockedAt'] ?? null),
@@ -453,16 +461,27 @@ final class unlock {
                 + ['state' => $state, 'release' => $release];
         }
         if (
-            !set_config('unlockpending', json_encode(['time' => time(), 'expected' => $expected,
-                'sha' => $release['sha']]), self::COMPONENT)
+            !set_config(
+                'unlockpending',
+                json_encode(
+                    ['time' => time(), 'expected' => $expected,
+                    'sha' => $release['sha']]
+                ),
+                self::COMPONENT
+            )
         ) {
             return ['outcome' => 'blocked', 'error' => 'pendingstorage'] + $result + ['state' => $state];
         }
-        [$status, $data] = self::request('POST', self::url(self::UNLOCK), [
+        [$status, $data] = self::request(
+            'POST',
+            self::url(self::UNLOCK),
+            [
             'pluginId' => self::PLUGINID, 'pluginComponent' => self::COMPONENT,
             'siteId' => $creds['siteid'], 'apiKey' => $creds['apikey'],
             'releaseSha256' => $release['sha'], 'expectedCredits' => $expected,
-        ], 60);
+            ],
+            60
+        );
         $code = self::code($data);
         $result['message'] = self::text($data['message'] ?? '', 300);
         $result['balance'] = self::balance($data ?? []);

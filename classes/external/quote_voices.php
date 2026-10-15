@@ -42,12 +42,18 @@ class quote_voices extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'clips' => new external_multiple_structure(new external_single_structure([
-                'sceneid' => new external_value(PARAM_INT, 'Scene id'),
-                'index' => new external_value(PARAM_INT, 'Clip number in the scene'),
-            ])),
-        ]);
+        return new external_function_parameters(
+            [
+            'clips' => new external_multiple_structure(
+                new external_single_structure(
+                    [
+                    'sceneid' => new external_value(PARAM_INT, 'Scene id'),
+                    'index' => new external_value(PARAM_INT, 'Clip number in the scene'),
+                    ]
+                )
+            ),
+            ]
+        );
     }
 
     /**
@@ -85,10 +91,14 @@ class quote_voices extends base {
      * @return external_multiple_structure
      */
     public static function execute_returns(): external_multiple_structure {
-        return new external_multiple_structure(new external_single_structure([
-            'sceneid' => new external_value(PARAM_INT, 'Scene id'),
-            'index' => new external_value(PARAM_INT, 'Clip number in the scene'),
-            'credits' => new external_value(PARAM_INT, 'Current price: 0 (a free remake) or the price per clip'),
-        ]));
+        return new external_multiple_structure(
+            new external_single_structure(
+                [
+                'sceneid' => new external_value(PARAM_INT, 'Scene id'),
+                'index' => new external_value(PARAM_INT, 'Clip number in the scene'),
+                'credits' => new external_value(PARAM_INT, 'Current price: 0 (a free remake) or the price per clip'),
+                ]
+            )
+        );
     }
 }

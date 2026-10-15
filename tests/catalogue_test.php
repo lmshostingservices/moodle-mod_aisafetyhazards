@@ -58,8 +58,12 @@ final class catalogue_test extends \advanced_testcase {
      */
     public function test_extra_tasks(): void {
         $this->resetAfterTest();
-        set_config('extratasks', "construction | Civil construction | Pile driving\nFilm production | Stunts | High falls\n"
-            . "broken line\nA | | C", 'mod_aisafetyhazards');
+        set_config(
+            'extratasks',
+            "construction | Civil construction | Pile driving\nFilm production | Stunts | High falls\n"
+            . "broken line\nA | | C",
+            'mod_aisafetyhazards'
+        );
         $tree = catalogue::tree();
         $this->assertContains('Pile driving', $tree['construction']['subs']['civil']['tasks']);
         $mining = array_values(array_filter($tree, fn($i) => $i['name'] === 'Film production'));
@@ -71,12 +75,15 @@ final class catalogue_test extends \advanced_testcase {
         foreach (array_keys($tree) as $key) {
             $this->assertMatchesRegularExpression('/^[a-z]+$/', (string)$key);
         }
-        $this->assertSame([array_keys($tree)[count($tree) - 1], array_key_first($mining[0]['subs']),
-            array_key_first(reset($mining[0]['subs'])['tasks'])], catalogue::valid_path(
+        $this->assertSame(
+            [array_keys($tree)[count($tree) - 1], array_key_first($mining[0]['subs']),
+            array_key_first(reset($mining[0]['subs'])['tasks'])],
+            catalogue::valid_path(
                 array_keys($tree)[count($tree) - 1],
                 array_key_first($mining[0]['subs']),
                 array_key_first(reset($mining[0]['subs'])['tasks'])
-            ));
+            )
+        );
     }
 
     /**

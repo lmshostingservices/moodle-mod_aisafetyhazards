@@ -2,6 +2,21 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.2] - 2026-10-15
+
+### Changed
+
+- Release pipeline: no raw web service parameters are left. The scene editor's data and the JSON the player, results and paste preview receive are now PARAM_TEXT (every field was already cleaned as plain text).
+- Multi-line function calls now put each argument on its own line (coding style only).
+
+## [v1.0.1] - 2026-10-15
+
+### Fixed
+
+- Creating a picture seemed to hang, then "aireq_busy" appeared. A picture with hazard positions can take LMS Labs longer than the 100 seconds the site waited, so the answer was cut off and the request was left unresolved; asking again for that scene was then refused. The site now waits up to 170 seconds (and keeps the page running for as long), and the button counts the seconds while it waits.
+- Asking again for a scene whose picture is unresolved now shows that request with "Check again" and "Dismiss" instead of an error. Nothing is sent again with a new key, so nothing can be charged twice.
+- The scene card says when its picture is waiting, and "Create missing pictures" skips that scene.
+
 ## [v1.0.0] - 2026-10-15
 
 First release, built on AI Soft Skills.

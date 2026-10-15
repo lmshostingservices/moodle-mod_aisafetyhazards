@@ -73,8 +73,11 @@ foreach ($finished as $attempt) {
 // One start card per way to play: study, practice, test.
 $starts = [];
 foreach ($modes as $mode) {
-    $inprogress = $canattempt && $DB->record_exists('aisafetyhazards_attempt', ['aisafetyhazardsid' => $instance->id,
-        'userid' => $userid, 'state' => learning::STATE_INPROGRESS, 'playmode' => $mode]);
+    $inprogress = $canattempt && $DB->record_exists(
+        'aisafetyhazards_attempt',
+        ['aisafetyhazardsid' => $instance->id,
+        'userid' => $userid, 'state' => learning::STATE_INPROGRESS, 'playmode' => $mode]
+    );
     if (!$canattempt || !$ready || (!$inprogress && !learning::can_start($instance, $userid, $mode))) {
         continue;
     }

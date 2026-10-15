@@ -62,8 +62,10 @@ final class voiceover_test extends \advanced_testcase {
         set_config('lmslabssiteid', 'My Site', 'mod_aisafetyhazards');
         set_config('lmslabsapikey', 'secret-key', 'mod_aisafetyhazards');
         $voices = array_map(fn($t) => ['name' => 'en-AU-Chirp3-HD-' . $t], voiceover::VOICETYPES);
-        lmslabs::$transport = fn() => [200, json_encode(['locales' => [
-            ['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU', 'voices' => $voices]], 'tariff' => ['tts' => 2]])];
+        lmslabs::$transport = fn() => [200, json_encode(
+            ['locales' => [
+            ['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU', 'voices' => $voices]], 'tariff' => ['tts' => 2]]
+        )];
         $this->answers = [];
         $this->sent = [];
         lmslabs::$posttransport = function ($url, $headers, $body) {
@@ -214,8 +216,15 @@ final class voiceover_test extends \advanced_testcase {
         $row = requests::start_voice($this->instance, (int)$USER->id, $this->scene, $hazard['index'] + 2);
         $this->assertSame('failed', $row->status);
         $this->assertStringContainsString('not available yet', requests::export($row, $this->context)['message']);
-        $this->assertSame(2, $DB->count_records_select('files', "component = 'mod_aisafetyhazards' AND filearea = 'voiceover'
-            AND itemid = :id AND filename <> '.'", ['id' => $this->scene->id]));
+        $this->assertSame(
+            2,
+            $DB->count_records_select(
+                'files',
+                "component = 'mod_aisafetyhazards' AND filearea = 'voiceover'
+            AND itemid = :id AND filename <> '.'",
+                ['id' => $this->scene->id]
+            )
+        );
     }
 
     /**
@@ -260,9 +269,11 @@ final class voiceover_test extends \advanced_testcase {
         $this->assertSame(['text', 'locale', 'speed', 'voice'], array_keys($this->sent[0]));
         // The catalogue says LMS Labs takes clipRef and maxCredits.
         $voices = array_map(fn($t) => ['name' => 'en-AU-Chirp3-HD-' . $t], voiceover::VOICETYPES);
-        lmslabs::$transport = fn() => [200, json_encode(['locales' => [['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU',
+        lmslabs::$transport = fn() => [200, json_encode(
+            ['locales' => [['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU',
             'voices' => $voices]], 'tariff' => ['tts' => 2, 'ttsRemake' => 0, 'ttsRemakeLimit' => 10,
-            'ttsRemakeWindowDays' => 30, 'clipRefSupported' => true, 'maxCreditsRequired' => true]])];
+            'ttsRemakeWindowDays' => 30, 'clipRefSupported' => true, 'maxCreditsRequired' => true]]
+        )];
         \cache::make('mod_aisafetyhazards', 'voicecatalog')->purge();
         voiceover::catalog();
         $this->assertSame(['limit' => 10, 'days' => 30], voiceover::remakes());
@@ -309,8 +320,10 @@ final class voiceover_test extends \advanced_testcase {
         global $USER;
         $this->assertSame(2, lmslabs::VOICE_CREDITS);
         $voices = array_map(fn($t) => ['name' => 'en-AU-Chirp3-HD-' . $t], voiceover::VOICETYPES);
-        $catalogue = fn($tts) => fn() => [200, json_encode(['locales' => [['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU',
-            'voices' => $voices]], 'tariff' => ['tts' => $tts]])];
+        $catalogue = fn($tts) => fn() => [200, json_encode(
+            ['locales' => [['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU',
+            'voices' => $voices]], 'tariff' => ['tts' => $tts]]
+        )];
         lmslabs::$transport = $catalogue(5);
         \cache::make('mod_aisafetyhazards', 'voicecatalog')->purge();
         voiceover::catalog();
@@ -335,8 +348,10 @@ final class voiceover_test extends \advanced_testcase {
         $this->assertStringContainsString('at most 2 credits', requests::export($row, $this->context)['message']);
         // No published price: the price is unknown, so nothing new is made either (a clip sent without a ceiling to an
         // older LMS Labs could cost more than the teacher was shown).
-        lmslabs::$transport = fn() => [200, json_encode(['locales' => [['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU',
-            'voices' => $voices]], 'tariff' => []])];
+        lmslabs::$transport = fn() => [200, json_encode(
+            ['locales' => [['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU',
+            'voices' => $voices]], 'tariff' => []]
+        )];
         \cache::make('mod_aisafetyhazards', 'voicecatalog')->purge();
         voiceover::catalog();
         $this->assertSame(0, voiceover::price_hold());
@@ -354,8 +369,10 @@ final class voiceover_test extends \advanced_testcase {
      */
     public function test_quote(): void {
         $voices = array_map(fn($t) => ['name' => 'en-AU-Chirp3-HD-' . $t], voiceover::VOICETYPES);
-        lmslabs::$transport = fn() => [200, json_encode(['locales' => [['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU',
-            'voices' => $voices]], 'tariff' => ['tts' => 2, 'clipRefSupported' => true, 'maxCreditsRequired' => true]])];
+        lmslabs::$transport = fn() => [200, json_encode(
+            ['locales' => [['locale' => 'en-AU', 'ttsLanguageCode' => 'en-AU',
+            'voices' => $voices]], 'tariff' => ['tts' => 2, 'clipRefSupported' => true, 'maxCreditsRequired' => true]]
+        )];
         \cache::make('mod_aisafetyhazards', 'voicecatalog')->purge();
         voiceover::catalog();
         $quotes = [];
@@ -363,8 +380,10 @@ final class voiceover_test extends \advanced_testcase {
             $this->assertStringEndsWith(lmslabs::VOICE_QUOTE_ROUTE, $url);
             $quotes[] = json_decode($body, true);
             return count($quotes) === 1
-                ? [200, ['content-type' => 'application/json'], json_encode(['requestId' => 'q', 'credits' => 0,
-                    'firstClip' => false, 'freeRemakesRemaining' => 7, 'windowDays' => 30, 'freeRemakeLimit' => 10])]
+                ? [200, ['content-type' => 'application/json'], json_encode(
+                    ['requestId' => 'q', 'credits' => 0,
+                    'firstClip' => false, 'freeRemakesRemaining' => 7, 'windowDays' => 30, 'freeRemakeLimit' => 10]
+                )]
                 : [503, ['content-type' => 'application/json'], '{}'];
         };
         $this->assertSame(0, requests::quote_voice($this->instance, $this->scene, 0));

@@ -47,8 +47,11 @@ class custom_completion extends activity_custom_completion {
                 $params + ['mode' => 'test', 'passmark' => max(1, $passmark)]
             );
         } else {
-            $done = $DB->record_exists('aisafetyhazards_attempt', ['aisafetyhazardsid' => $params['aid'],
-                'userid' => $params['userid'], 'state' => $params['state']]);
+            $done = $DB->record_exists(
+                'aisafetyhazards_attempt',
+                ['aisafetyhazardsid' => $params['aid'],
+                'userid' => $params['userid'], 'state' => $params['state']]
+            );
         }
         return $done ? COMPLETION_COMPLETE : COMPLETION_INCOMPLETE;
     }

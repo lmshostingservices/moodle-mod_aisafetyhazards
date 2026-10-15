@@ -149,10 +149,15 @@ if ($step === 'build') {
         $templatedata += [
             'canai' => true,
             'draftcredits' => \mod_aisafetyhazards\local\ai\lmslabs::TEXT_CREDITS,
-            'brief' => get_string_manager()->get_string('aidraft_briefdefault', 'mod_aisafetyhazards', (object)[
+            'brief' => get_string_manager()->get_string(
+                'aidraft_briefdefault',
+                'mod_aisafetyhazards',
+                (object)[
                 'task' => $etask, 'subindustry' => $esub, 'industry' => $eind,
                 'language' => catalogue::language_english((string)$instance->contentlang),
-            ], 'en'),
+                ],
+                'en'
+            ),
             'requests' => array_map(
                 fn($r) => requests::export($r, $context),
                 requests::open((int)$instance->id, requests::SCENE)
@@ -192,8 +197,11 @@ $templatedata = [
     'cmid' => (int)$cm->id,
     'action' => $baseurl->out(false),
     'sesskey' => sesskey(),
-    'industries' => array_map(fn($i) => ['key' => $i['key'], 'name' => $i['name'],
-        'selected' => $i['key'] === $instance->industry], $tree),
+    'industries' => array_map(
+        fn($i) => ['key' => $i['key'], 'name' => $i['name'],
+        'selected' => $i['key'] === $instance->industry],
+        $tree
+    ),
     'customindustry' => (string)$instance->customindustry,
     'customsubindustry' => (string)$instance->customsubindustry,
     'customtask' => (string)$instance->customtask,

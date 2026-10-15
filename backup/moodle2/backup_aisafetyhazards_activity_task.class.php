@@ -40,10 +40,12 @@ class backup_aisafetyhazards_activity_task extends backup_activity_task {
      * Defines the structure step.
      */
     protected function define_my_steps() {
-        $this->add_step(new backup_aisafetyhazards_activity_structure_step(
-            'aisafetyhazards_structure',
-            'aisafetyhazards.xml'
-        ));
+        $this->add_step(
+            new backup_aisafetyhazards_activity_structure_step(
+                'aisafetyhazards_structure',
+                'aisafetyhazards.xml'
+            )
+        );
     }
 
     /**

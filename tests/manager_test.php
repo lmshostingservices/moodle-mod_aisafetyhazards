@@ -172,10 +172,12 @@ final class manager_test extends \advanced_testcase {
      * Settings are normalised: an unknown task becomes custom, at least one mode, limits on numbers.
      */
     public function test_prepare_instance_data(): void {
-        $data = manager::prepare_instance_data((object)['industry' => 'construction', 'subindustry' => 'civil',
+        $data = manager::prepare_instance_data(
+            (object)['industry' => 'construction', 'subindustry' => 'civil',
             'task' => 'space', 'customtask' => " Laying\nkerbs ", 'contentlang' => 'xx', 'imagestyle' => 'oil',
             'maxattempts' => 500, 'grademethod' => 9, 'scenecount' => 99, 'studymode' => 0, 'practicemode' => 0,
-            'testmode' => 0, 'passmark' => 140, 'voiceparts' => ['situation' => 1, 'hazards' => 0, 'bogus' => 1]]);
+            'testmode' => 0, 'passmark' => 140, 'voiceparts' => ['situation' => 1, 'hazards' => 0, 'bogus' => 1]]
+        );
         $this->assertSame(['construction', 'civil', 'custom'], [$data->industry, $data->subindustry, $data->task]);
         $this->assertSame('Laying kerbs', $data->customtask);
         $this->assertSame('en', $data->contentlang);

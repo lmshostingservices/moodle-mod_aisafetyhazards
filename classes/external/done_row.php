@@ -36,12 +36,14 @@ class done_row extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'attemptid' => new external_value(PARAM_INT, 'Attempt id'),
             'sceneid' => new external_value(PARAM_INT, 'Scene id'),
             'hazardid' => new external_value(PARAM_INT, 'Hazard id'),
             'kind' => new external_value(PARAM_ALPHA, 'reduce or ppe'),
-        ]);
+            ]
+        );
     }
 
     /**
@@ -54,8 +56,11 @@ class done_row extends base {
      * @return array
      */
     public static function execute(int $attemptid, int $sceneid, int $hazardid, string $kind): array {
-        $params = self::validate_parameters(self::execute_parameters(), ['attemptid' => $attemptid, 'sceneid' => $sceneid,
-            'hazardid' => $hazardid, 'kind' => $kind]);
+        $params = self::validate_parameters(
+            self::execute_parameters(),
+            ['attemptid' => $attemptid, 'sceneid' => $sceneid,
+            'hazardid' => $hazardid, 'kind' => $kind]
+        );
         [, , $instance, $context, $attempt] = self::load_attempt($params['attemptid']);
         $result = learning::done_row($instance, $context, $attempt, $params['sceneid'], $params['hazardid'], $params['kind']);
         if ($result['now'] === null) {
@@ -74,7 +79,8 @@ class done_row extends base {
         foreach (\mod_aisafetyhazards\local\catalogue::KINDS as $kind) {
             $flags[$kind] = new external_value(PARAM_BOOL, 'The ' . $kind . ' row is finished');
         }
-        return new external_single_structure([
+        return new external_single_structure(
+            [
             'marked' => new external_value(PARAM_BOOL, 'Marked now (Practice); Test marks at the end'),
             'correct' => new external_value(PARAM_BOOL, 'The label was right (Practice)'),
             'reason' => new external_value(PARAM_TEXT, 'Why (Practice)'),
@@ -89,16 +95,21 @@ class done_row extends base {
             'complete' => new external_value(PARAM_BOOL, 'The hazard is finished'),
             'scenecomplete' => new external_value(PARAM_BOOL, 'The scene is finished'),
             'allcomplete' => new external_value(PARAM_BOOL, 'Every scene is finished'),
-            'now' => new external_single_structure([
+            'now' => new external_single_structure(
+                [
                 'likelihood' => new external_value(PARAM_INT, 'Likelihood now, 1 to 5'),
                 'consequence' => new external_value(PARAM_INT, 'Consequence now, 1 to 5'),
                 'eliminated' => new external_value(PARAM_BOOL, 'The hazard is removed'),
                 'rating' => new external_value(PARAM_ALPHA, 'low, medium, high, extreme or eliminated'),
-            ], 'The hazard\'s risk now (Practice)', VALUE_OPTIONAL),
+                ],
+                'The hazard\'s risk now (Practice)',
+                VALUE_OPTIONAL
+            ),
             'voice' => new external_multiple_structure(
                 new external_value(PARAM_URL, 'Voiceover clip'),
                 'What is read now (Practice), empty when there is nothing'
             ),
-        ]);
+            ]
+        );
     }
 }

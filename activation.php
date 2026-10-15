@@ -93,8 +93,13 @@ if ($action === 'check') {
     if (!empty($state['resolved'])) {
         $msg .= ' ' . $str('act_msg_resolved_' . $state['resolved']);
     }
-    redirect($pageurl, $msg, null, $state['status'] === 'unknown' ? \core\output\notification::NOTIFY_WARNING
-        : \core\output\notification::NOTIFY_SUCCESS);
+    redirect(
+        $pageurl,
+        $msg,
+        null,
+        $state['status'] === 'unknown' ? \core\output\notification::NOTIFY_WARNING
+        : \core\output\notification::NOTIFY_SUCCESS
+    );
 }
 
 if ($action === 'unlock') {
@@ -184,17 +189,23 @@ if ($action === 'review') {
         exit;
     }
     $release = $r['release'];
-    $confirmurl = new moodle_url('/mod/aisafetyhazards/activation.php', ['action' => 'unlock', 'confirm' => 1,
-        'expected' => $release['price'], 'sha' => $release['sha']]);
+    $confirmurl = new moodle_url(
+        '/mod/aisafetyhazards/activation.php',
+        ['action' => 'unlock', 'confirm' => 1,
+        'expected' => $release['price'], 'sha' => $release['sha']]
+    );
     $warning = $r['warning'] === 'insufficient' ? ' ' . $str(
         'act_warn_insufficient',
         ['price' => $release['price'], 'balance' => $balancetext($r['state'])]
     ) : '';
-    $message = $str('act_confirm', [
+    $message = $str(
+        'act_confirm',
+        [
         'price' => $release['price'],
         'balance' => $balancetext($r['state']),
         'release' => ($release['version'] !== '' ? $release['version'] . ', ' : '') . 'SHA-256 ' . $release['sha'],
-    ]) . $warning;
+        ]
+    ) . $warning;
     echo $OUTPUT->confirm(
         $message,
         new single_button($confirmurl, $str('act_confirmbutton', $release['price']), 'post', single_button::BUTTON_PRIMARY),

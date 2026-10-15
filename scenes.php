@@ -45,8 +45,10 @@ require_capability('mod/aisafetyhazards:manage', $context);
 
 $baseurl = setuppath::url((int)$cm->id, $step);
 $PAGE->set_url($baseurl);
-$PAGE->set_title(format_string($instance->name) . ': ' .
-    get_string('setupstep_' . setuppath::STEPS[$step - 1], 'mod_aisafetyhazards'));
+$PAGE->set_title(
+    format_string($instance->name) . ': ' .
+    get_string('setupstep_' . setuppath::STEPS[$step - 1], 'mod_aisafetyhazards')
+);
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->activityheader->disable();
 if ($node = $PAGE->settingsnav->find('aisafetyhazards_builder', navigation_node::TYPE_SETTING)) {
@@ -134,6 +136,7 @@ $i = 0;
 $total = count($scenes);
 $sesskey = sesskey();
 $missing = [];
+$tocreate = [];
 $nohazards = 0;
 // Voiceover: what is still to make, scene by scene (only worked out on the voiceover step).
 $voicestep = $step === setuppath::VOICES;
@@ -145,8 +148,14 @@ foreach ($scenes as $s) {
     [$url] = manager::get_scene_image($context, (int)$s->id);
     $hazards = manager::scene_hazards((int)$s->id);
     $hazardsok = manager::hazards_ok($hazards);
+    // A picture asked for and not resolved yet: shown with "Check again" above, never asked for twice.
+    $waiting = $step === setuppath::PICTURES
+        && requests::waiting((int)$instance->id, requests::IMAGE, (int)$s->id) !== null;
     if (!$url) {
         $missing[] = (int)$s->id;
+        if (!$waiting) {
+            $tocreate[] = (int)$s->id;
+        }
     }
     $nohazards += $hazardsok ? 0 : 1;
     $toclip = [];
@@ -174,6 +183,7 @@ foreach ($scenes as $s) {
         'title' => format_string($s->title, true, ['context' => $context]),
         'image' => $url,
         'noimage' => !$url,
+        'waiting' => $waiting,
         'hazardsok' => $hazardsok,
         'canai' => $canai,
         'imagecredits' => \mod_aisafetyhazards\local\ai\lmslabs::IMAGE_CREDITS,
@@ -183,8 +193,11 @@ foreach ($scenes as $s) {
         'autospots' => $auto,
         'upurl' => $i > 1 ? (new moodle_url($baseurl, ['action' => 'up', 'sceneid' => $s->id, 'sesskey' => $sesskey]))
             ->out(false) : null,
-        'downurl' => $i < $total ? (new moodle_url($baseurl, ['action' => 'down', 'sceneid' => $s->id,
-            'sesskey' => $sesskey]))->out(false) : null,
+        'downurl' => $i < $total ? (new moodle_url(
+            $baseurl,
+            ['action' => 'down', 'sceneid' => $s->id,
+            'sesskey' => $sesskey]
+        ))->out(false) : null,
         'replaceurl' => (new moodle_url($baseurl, ['action' => 'replace', 'sceneid' => $s->id]))->out(false),
         'deleteurl' => (new moodle_url($baseurl, ['action' => 'delete', 'sceneid' => $s->id]))->out(false),
         'toolong' => (bool)manager::too_long($s, $hazards),
@@ -222,7 +235,9 @@ $voices = $voiceconfig && $voiceconfig['locale'] !== '' ? [['text' => $str('voic
     : [];
 
 echo $OUTPUT->header();
-echo $OUTPUT->render_from_template('mod_aisafetyhazards/scenes', [
+echo $OUTPUT->render_from_template(
+    'mod_aisafetyhazards/scenes',
+    [
     'bar' => setuppath::bar($step),
     'pictures' => $step === setuppath::PICTURES,
     'voicestep' => $voicestep,
@@ -230,20 +245,30 @@ echo $OUTPUT->render_from_template('mod_aisafetyhazards/scenes', [
     'voicenolocale' => $canvoice && $voiceconfig && $voiceconfig['locale'] === '',
     'voiceoff' => $voicestep && !$canvoice,
     'voices' => $voices,
-    'voicepartsline' => $str('voice_parts', implode('; ', array_map(
-        fn($p) => core_text::strtolower(core_text::substr($str('voicepart_' . $p), 0, 1)) .
-            core_text::substr($str('voicepart_' . $p), 1),
-        voiceover::parts($instance)
-    ))),
+    'voicepartsline' => $str(
+        'voice_parts',
+        implode(
+            '; ',
+            array_map(
+                fn($p) => core_text::strtolower(core_text::substr($str('voicepart_' . $p), 0, 1)) .
+                    core_text::substr($str('voicepart_' . $p), 1),
+                voiceover::parts($instance)
+            )
+        )
+    ),
     'settingsurl' => (new moodle_url('/course/modedit.php', ['update' => $cm->id]))->out(false) . '#id_playhdr',
     'clipcount' => count($clips),
     'clipids' => implode(',', $clips),
     'clipcredits' => count($clips) * \mod_aisafetyhazards\local\ai\lmslabs::VOICE_CREDITS,
     'voicecredits' => \mod_aisafetyhazards\local\ai\lmslabs::VOICE_CREDITS,
     // LMS Labs still publishes another price per clip: nothing new is made until it publishes the approved one.
-    'pricehold' => voiceover::price_hold() !== null ? get_string(voiceover::price_hold() ? 'voice_pricehold'
-        : 'voice_priceunknown', 'mod_aisafetyhazards', [
-        'published' => voiceover::price_hold(), 'approved' => \mod_aisafetyhazards\local\ai\lmslabs::VOICE_CREDITS]) : '',
+    'pricehold' => voiceover::price_hold() !== null ? get_string(
+        voiceover::price_hold() ? 'voice_pricehold'
+        : 'voice_priceunknown',
+        'mod_aisafetyhazards',
+        [
+        'published' => voiceover::price_hold(), 'approved' => \mod_aisafetyhazards\local\ai\lmslabs::VOICE_CREDITS]
+    ) : '',
     // Free remakes (when LMS Labs supports them): each clip is priced before the teacher confirms.
     'remakes' => voiceover::remakes() ? 1 : 0,
     'remakesline' => voiceover::remakes() ? get_string('voice_remakes', 'mod_aisafetyhazards', (object)voiceover::remakes()) : '',
@@ -255,9 +280,10 @@ echo $OUTPUT->render_from_template('mod_aisafetyhazards/scenes', [
     'cmid' => (int)$cm->id,
     'canai' => $canai,
     'aioff' => !$canai,
-    'missingcount' => count($missing),
-    'missingids' => implode(',', $missing),
-    'missingcredits' => count($missing) * \mod_aisafetyhazards\local\ai\lmslabs::IMAGE_CREDITS,
+    'missingcount' => count($tocreate),
+    'allpictures' => !$missing,
+    'missingids' => implode(',', $tocreate),
+    'missingcredits' => count($tocreate) * \mod_aisafetyhazards\local\ai\lmslabs::IMAGE_CREDITS,
     'imagecredits' => \mod_aisafetyhazards\local\ai\lmslabs::IMAGE_CREDITS,
     'requests' => $step !== setuppath::CHECK && has_capability('mod/aisafetyhazards:useai', $context) ? array_map(
         fn($r) => requests::export($r, $context),
@@ -270,5 +296,6 @@ echo $OUTPUT->render_from_template('mod_aisafetyhazards/scenes', [
         'nextlabel' => $str('setup_next', $str('setupstep_' . setuppath::STEPS[$next - 1])),
         'blocked' => $blocked,
     ],
-]);
+    ]
+);
 echo $OUTPUT->footer();

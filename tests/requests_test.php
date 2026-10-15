@@ -97,8 +97,10 @@ final class requests_test extends \advanced_testcase {
     protected function draft_ok(array $draft = []): array {
         $scene = json_decode(file_get_contents(__DIR__ . '/fixtures/draft.json'), true)['scenes'][0];
         return [200, ['content-type' => 'application/json', 'x-request-id' => 'req-1', 'x-idempotent-replay' => 'false'],
-            json_encode(['requestId' => 'req-1', 'model' => 'gpt-4o-2024-08-06', 'creditsCharged' => 5, 'creditsBalance' => 97,
-            'draft' => $draft + $scene])];
+            json_encode(
+                ['requestId' => 'req-1', 'model' => 'gpt-4o-2024-08-06', 'creditsCharged' => 5, 'creditsBalance' => 97,
+                'draft' => $draft + $scene]
+            )];
     }
 
     /**
@@ -178,8 +180,10 @@ final class requests_test extends \advanced_testcase {
      */
     public function test_scene_pending_then_replay(): void {
         global $DB;
-        $this->answers = [[202, ['retry-after' => '5', 'x-request-id' => 'req-1'], json_encode(['requestId' => 'req-1',
-            'error' => ['code' => 'PENDING', 'message' => 'PENDING']])]];
+        $this->answers = [[202, ['retry-after' => '5', 'x-request-id' => 'req-1'], json_encode(
+            ['requestId' => 'req-1',
+            'error' => ['code' => 'PENDING', 'message' => 'PENDING']]
+        )]];
         $row = requests::start_scene($this->instance, (int)$this->teacher->id, 'A brief');
         $this->assertSame('pending', $row->status);
         $this->assertSame(5, $row->retryafter);
@@ -197,8 +201,14 @@ final class requests_test extends \advanced_testcase {
         $this->assertCount(2, $this->sent);
         $this->assertSame($this->sent[0][3], $this->sent[1][3], 'Same key.');
         $this->assertSame($this->sent[0][2], $this->sent[1][2], 'Same body.');
-        $this->assertSame(1, $DB->count_records('aisafetyhazards_scene', ['aisafetyhazardsid' => $this->instance->id,
-            'title' => 'Digging the trench']));
+        $this->assertSame(
+            1,
+            $DB->count_records(
+                'aisafetyhazards_scene',
+                ['aisafetyhazardsid' => $this->instance->id,
+                'title' => 'Digging the trench']
+            )
+        );
         $this->assertSame(2, (int)$row->tries);
     }
 
@@ -323,8 +333,10 @@ final class requests_test extends \advanced_testcase {
         $context = \context_module::instance(get_coursemodule_from_instance('aisafetyhazards', $this->instance->id)->id);
 
         // Not enough credits: nothing is created.
-        $this->answers = [[402, ['content-type' => 'application/json'], json_encode(['requestId' => 'imp-0',
-            'error' => ['code' => 'INSUFFICIENT_CREDITS', 'message' => 'x'], 'creditsBalance' => 2])]];
+        $this->answers = [[402, ['content-type' => 'application/json'], json_encode(
+            ['requestId' => 'imp-0',
+            'error' => ['code' => 'INSUFFICIENT_CREDITS', 'message' => 'x'], 'creditsBalance' => 2]
+        )]];
         $row = requests::start_import($this->instance, (int)$this->teacher->id, $draft);
         $this->assertSame('failed', $row->status);
         $this->assertSame($start, $scenes());
@@ -353,8 +365,10 @@ final class requests_test extends \advanced_testcase {
         $row = requests::start_import($this->instance, (int)$this->teacher->id, $draft);
         $this->assertSame('uncertain', $row->status);
         $this->assertSame($start, $scenes());
-        $this->answers = [[200, ['content-type' => 'application/json'], json_encode(['requestId' => 'imp-2',
-            'creditsCharged' => 10, 'creditsBalance' => 44])]];
+        $this->answers = [[200, ['content-type' => 'application/json'], json_encode(
+            ['requestId' => 'imp-2',
+            'creditsCharged' => 10, 'creditsBalance' => 44]
+        )]];
         $row = requests::check($row, $this->instance);
         $this->assertSame('completed', $row->status);
         $this->assertSame($this->sent[3][3], $this->sent[4][3]);
@@ -403,6 +417,24 @@ final class requests_test extends \advanced_testcase {
         $this->assertNotSame($this->sent[2][3], $this->sent[3][3]);
         $this->assertSame('lost', $row->status, 'Charged but unusable bytes cannot be recovered.');
         $this->assertSame('unusable_image', $row->errorcode);
+    }
+
+    /**
+     * Asking again for a picture whose answer was lost shows the waiting request: nothing is sent with a new key,
+     * and "Create all" skips that scene.
+     */
+    public function test_image_waiting_is_shown_not_resent(): void {
+        global $DB;
+        $this->answers = [[0, [], '']];
+        $first = requests::start_image($this->instance, (int)$this->teacher->id, $this->scene);
+        $this->assertSame('uncertain', $first->status);
+        $again = requests::start_image($this->instance, (int)$this->teacher->id, $this->scene);
+        $this->assertSame((int)$first->id, (int)$again->id);
+        $this->assertCount(1, $this->sent, 'Nothing was sent again.');
+        $this->assertSame(1, $DB->count_records('aisafetyhazards_aireq', ['operation' => requests::IMAGE]));
+        $this->assertNotNull(requests::waiting((int)$this->instance->id, requests::IMAGE, (int)$this->scene->id));
+        requests::dismiss($again);
+        $this->assertNull(requests::waiting((int)$this->instance->id, requests::IMAGE, (int)$this->scene->id));
     }
 
     /**
@@ -482,10 +514,26 @@ final class requests_test extends \advanced_testcase {
      * Both error envelopes are read.
      */
     public function test_read_error(): void {
-        $this->assertSame(['insufficient_credits', 'r1', 2], requests::read_error([], json_encode(['requestId' => 'r1',
-            'error' => ['code' => 'INSUFFICIENT_CREDITS', 'message' => 'x'], 'creditsBalance' => 2])));
-        $this->assertSame(['insufficient_credits', 'r2', 4], requests::read_error([], json_encode([
-            'error' => 'INSUFFICIENT_CREDITS', 'requestId' => 'r2', 'balance' => 4])));
+        $this->assertSame(
+            ['insufficient_credits', 'r1', 2],
+            requests::read_error(
+                [],
+                json_encode(
+                    ['requestId' => 'r1',
+                    'error' => ['code' => 'INSUFFICIENT_CREDITS', 'message' => 'x'], 'creditsBalance' => 2]
+                )
+            )
+        );
+        $this->assertSame(
+            ['insufficient_credits', 'r2', 4],
+            requests::read_error(
+                [],
+                json_encode(
+                    [
+                    'error' => 'INSUFFICIENT_CREDITS', 'requestId' => 'r2', 'balance' => 4]
+                )
+            )
+        );
         $this->assertSame(['', 'h1', null], requests::read_error(['x-request-id' => 'h1'], 'not json'));
     }
 

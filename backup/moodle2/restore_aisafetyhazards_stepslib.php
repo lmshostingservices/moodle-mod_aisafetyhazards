@@ -117,10 +117,14 @@ class restore_aisafetyhazards_activity_structure_step extends restore_activity_s
         if (!$data->userid) {
             return;
         }
-        $map = fn($table, $ids) => array_values(array_filter(array_map(
-            fn($id) => (int)$this->get_mappingid($table, $id),
-            (array)$ids
-        )));
+        $map = fn($table, $ids) => array_values(
+            array_filter(
+                array_map(
+                    fn($id) => (int)$this->get_mappingid($table, $id),
+                    (array)$ids
+                )
+            )
+        );
         $order = json_decode((string)$data->sceneorder, true);
         $neworder = [];
         foreach (is_array($order) ? $order : [] as $item) {

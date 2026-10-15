@@ -58,8 +58,14 @@ final class setting_activation_test extends \advanced_testcase {
         $this->assertStringNotContainsString('secret-key-value', $html);
 
         // Already unlocked: only "Check access" is offered.
-        set_config('unlockstate', json_encode(['status' => 'unlocked', 'checkedat' => time(), 'unlockedat' => time(),
-            'credits' => 40]), 'mod_aisafetyhazards');
+        set_config(
+            'unlockstate',
+            json_encode(
+                ['status' => 'unlocked', 'checkedat' => time(), 'unlockedat' => time(),
+                'credits' => 40]
+            ),
+            'mod_aisafetyhazards'
+        );
         $html = $setting->output_html(null);
         $this->assertStringContainsString('alert-success', $html);
         $this->assertSame(1, substr_count($html, 'disabled="disabled"'));

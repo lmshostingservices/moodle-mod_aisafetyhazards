@@ -84,8 +84,10 @@ final class backup_test extends \advanced_testcase {
         $course = $gen->create_course();
         $student = $gen->create_and_enrol($course, 'student');
         $sh = $gen->get_plugin_generator('mod_aisafetyhazards');
-        $instance = $sh->create_instance(['course' => $course->id, 'task' => 'custom', 'customtask' => 'Laying kerbs',
-            'shuffleoptions' => 1]);
+        $instance = $sh->create_instance(
+            ['course' => $course->id, 'task' => 'custom', 'customtask' => 'Laying kerbs',
+            'shuffleoptions' => 1]
+        );
         $scene = $sh->create_scene($instance, 'Short-staffed Friday');
         $cm = get_coursemodule_from_instance('aisafetyhazards', $instance->id);
         $context = \context_module::instance($cm->id);
@@ -97,8 +99,11 @@ final class backup_test extends \advanced_testcase {
 
         $newcourseid = $this->backup_restore((int)$course->id);
         $newinstance = $DB->get_record('aisafetyhazards', ['course' => $newcourseid], '*', MUST_EXIST);
-        $this->assertSame(['construction', 'civil', 'custom', 'Laying kerbs'], [$newinstance->industry,
-            $newinstance->subindustry, $newinstance->task, $newinstance->customtask]);
+        $this->assertSame(
+            ['construction', 'civil', 'custom', 'Laying kerbs'],
+            [$newinstance->industry,
+            $newinstance->subindustry, $newinstance->task, $newinstance->customtask]
+        );
         $newscene = $DB->get_record('aisafetyhazards_scene', ['aisafetyhazardsid' => $newinstance->id], '*', MUST_EXIST);
         $this->assertSame('Short-staffed Friday', $newscene->title);
         $hazards = \mod_aisafetyhazards\local\manager::scene_hazards((int)$newscene->id);
@@ -120,8 +125,11 @@ final class backup_test extends \advanced_testcase {
         $this->assertEqualsCanonicalizing($newcontrols, $order[0]['rows'][$newwall]['reduce']);
         $choices = $DB->get_records('aisafetyhazards_choice', ['attemptid' => $newattempt->id], 'id');
         $first = reset($choices);
-        $this->assertSame([$newwall, $newwall, (int)$newscene->id], [(int)$first->hazardid, (int)$first->itemid,
-            (int)$first->sceneid]);
+        $this->assertSame(
+            [$newwall, $newwall, (int)$newscene->id],
+            [(int)$first->hazardid, (int)$first->itemid,
+            (int)$first->sceneid]
+        );
         $control = array_values(array_filter($choices, fn($c) => $c->kind === 'reduce'))[0];
         $this->assertContains((int)$control->itemid, $newcontrols);
         $this->assertEquals(100, (float)$newattempt->safety);
@@ -153,9 +161,11 @@ final class backup_test extends \advanced_testcase {
         }
         $this->assertSame(2, $DB->count_records('aisafetyhazards'));
         $this->assertSame(10, $DB->count_records('aisafetyhazards_hazard'));
-        $this->assertNotNull(\mod_aisafetyhazards\local\manager::get_scene_file(
-            \context_module::instance($newcm->id),
-            (int)$DB->get_field('aisafetyhazards_scene', 'id', ['aisafetyhazardsid' => $newcm->instance])
-        ));
+        $this->assertNotNull(
+            \mod_aisafetyhazards\local\manager::get_scene_file(
+                \context_module::instance($newcm->id),
+                (int)$DB->get_field('aisafetyhazards_scene', 'id', ['aisafetyhazardsid' => $newcm->instance])
+            )
+        );
     }
 }

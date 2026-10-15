@@ -85,9 +85,20 @@ export const init = async(selector) => {
     const confirm = (question) => new Promise((resolve) => {
         Notification.saveCancel(S.confirm_title, question, S.confirm_create, () => resolve(true), () => resolve(false));
     });
+    // While a picture is being made, the button counts the seconds, so a long wait never looks like a hang.
+    const ticking = (label, text) => {
+        const start = Date.now();
+        const draw = () => {
+            const s = Math.floor((Date.now() - start) / 1000);
+            label.textContent = text + ' ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+        };
+        draw();
+        const timer = window.setInterval(draw, 1000);
+        return () => window.clearInterval(timer);
+    };
     // One intentional, stored request (a new key); it is never resent automatically.
     const create = (sceneid) => Ajax.call([{methodname: 'mod_aisafetyhazards_generate_image',
-        args: {sceneid}}], true, true, false, 180000)[0];
+        args: {sceneid}}], true, true, false, 200000)[0];
 
     root.querySelectorAll('[data-action="genimage"]').forEach((btn) => {
         btn.addEventListener('click', async() => {
@@ -97,9 +108,9 @@ export const init = async(selector) => {
             const label = btn.querySelector('span');
             const original = label.textContent;
             btn.disabled = true;
-            label.textContent = S.generating;
+            const stop = ticking(label, S.generating);
             try {
-                const request = await create(parseInt(btn.dataset.scene, 10));
+                const request = await create(parseInt(btn.dataset.scene, 10)).finally(stop);
                 await Requests.show(region, request, done);
                 if (request.status !== 'completed') {
                     btn.disabled = false;
@@ -230,8 +241,8 @@ export const init = async(selector) => {
             try {
                 // One after another; the run stops at the first picture that is not delivered.
                 for (const id of ids) {
-                    label.textContent = fmt(S.genall_progress, {done: made + 1, count: ids.length});
-                    const request = await create(id);
+                    const stop = ticking(label, fmt(S.genall_progress, {done: made + 1, count: ids.length}));
+                    const request = await create(id).finally(stop);
                     if (request.status !== 'completed') {
                         await Requests.show(region, request, null);
                         region.scrollIntoView({behavior: 'smooth', block: 'start'});

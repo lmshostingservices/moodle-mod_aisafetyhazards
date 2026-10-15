@@ -180,8 +180,11 @@ class learning {
         if (!in_array($mode, self::modes($instance), true)) {
             throw new moodle_exception('nomoreattempts', 'mod_aisafetyhazards');
         }
-        $attempt = $DB->get_record('aisafetyhazards_attempt', ['aisafetyhazardsid' => $instance->id, 'userid' => $userid,
-            'state' => self::STATE_INPROGRESS, 'playmode' => $mode]);
+        $attempt = $DB->get_record(
+            'aisafetyhazards_attempt',
+            ['aisafetyhazardsid' => $instance->id, 'userid' => $userid,
+            'state' => self::STATE_INPROGRESS, 'playmode' => $mode]
+        );
         if (!$attempt) {
             if (!self::can_start($instance, $userid, $mode)) {
                 throw new moodle_exception('nomoreattempts', 'mod_aisafetyhazards');
@@ -590,8 +593,11 @@ class learning {
                 throw new moodle_exception('invalidlabel', 'mod_aisafetyhazards');
             }
             // A label is used once: in Practice once it is on its spot, in Test once it is dropped anywhere.
-            $used = array_filter($choices, fn($c) => $c->kind === 'hazard' && (int)$c->itemid === $itemid
-                && ($test || (int)$c->correct === 1));
+            $used = array_filter(
+                $choices,
+                fn($c) => $c->kind === 'hazard' && (int)$c->itemid === $itemid
+                && ($test || (int)$c->correct === 1)
+            );
             if ($state['found'] || $used) {
                 throw new moodle_exception('alreadyplaced', 'mod_aisafetyhazards');
             }
@@ -631,9 +637,12 @@ class learning {
         } else {
             throw new moodle_exception('invalidlabel', 'mod_aisafetyhazards');
         }
-        $DB->insert_record('aisafetyhazards_choice', (object)['attemptid' => $attempt->id, 'sceneid' => $sceneid,
+        $DB->insert_record(
+            'aisafetyhazards_choice',
+            (object)['attemptid' => $attempt->id, 'sceneid' => $sceneid,
             'hazardid' => $hazardid, 'kind' => $kind, 'itemid' => $itemid, 'correct' => $correct ? 1 : 0,
-            'timecreated' => time()]);
+            'timecreated' => time()]
+        );
         $DB->set_field('aisafetyhazards_attempt', 'timemodified', time(), ['id' => $attempt->id]);
         $result = self::drop_result($instance, $context, $attempt, $sceneid, $hazardid, $correct, $reason, $detail);
         if (!$test && voiceover::enabled_for_learners()) {
@@ -683,8 +692,11 @@ class learning {
         if (!$state['found'] || !$state['done']['eliminate'] || $state['done'][$kind]) {
             throw new moodle_exception('rowsinorder', 'mod_aisafetyhazards');
         }
-        $DB->insert_record('aisafetyhazards_choice', (object)['attemptid' => $attempt->id, 'sceneid' => $sceneid,
-            'hazardid' => $hazardid, 'kind' => 'done', 'itemid' => $index, 'correct' => 0, 'timecreated' => time()]);
+        $DB->insert_record(
+            'aisafetyhazards_choice',
+            (object)['attemptid' => $attempt->id, 'sceneid' => $sceneid,
+            'hazardid' => $hazardid, 'kind' => 'done', 'itemid' => $index, 'correct' => 0, 'timecreated' => time()]
+        );
         return self::drop_result($instance, $context, $attempt, $sceneid, $hazardid, false, '', []);
     }
 
@@ -816,10 +828,12 @@ class learning {
                 // Needed: find it, its right elimination, and (unless it can be eliminated) every right control.
                 $need = 2;
                 if (!$best['eliminated']) {
-                    $need += count(array_filter(
-                        array_merge($h['controls']['reduce'], $h['controls']['ppe']),
-                        fn($c) => !empty($c['correct'])
-                    ));
+                    $need += count(
+                        array_filter(
+                            array_merge($h['controls']['reduce'], $h['controls']['ppe']),
+                            fn($c) => !empty($c['correct'])
+                        )
+                    );
                 }
                 $start = (int)$h['likelihood'] * (int)$h['consequence'];
                 $end = $p['eliminated'] ? 0 : $p['likelihood'] * $p['consequence'];
@@ -891,12 +905,14 @@ class learning {
             if ($completion->is_enabled($cm)) {
                 $completion->update_state($cm, COMPLETION_UNKNOWN, (int)$attempt->userid);
             }
-            \mod_aisafetyhazards\event\attempt_finished::create([
+            \mod_aisafetyhazards\event\attempt_finished::create(
+                [
                 'objectid' => $attempt->id,
                 'context' => $context,
                 'relateduserid' => $attempt->userid,
                 'other' => ['score' => (float)$attempt->score],
-            ])->trigger();
+                ]
+            )->trigger();
         }
         return self::summary($instance, $context, $attempt);
     }

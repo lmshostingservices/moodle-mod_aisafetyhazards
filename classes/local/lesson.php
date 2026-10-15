@@ -99,14 +99,19 @@ class lesson {
             }
         }
         $sm = get_string_manager();
-        $build = fn($d) => $sm->get_string('imageprompt_full', 'mod_aisafetyhazards', (object)[
+        $build = fn($d) => $sm->get_string(
+            'imageprompt_full',
+            'mod_aisafetyhazards',
+            (object)[
             'description' => $d,
             'hazards' => $show ? implode("\n", $show) : '- the hazards the scene describes',
             'industry' => $industry . ' (' . $sub . ')',
             'task' => $task,
             'style' => $sm->get_string('imagestyle_' . $instance->imagestyle, 'mod_aisafetyhazards', null, 'en'),
             'stylerule' => $sm->get_string('imagestyle_rule_' . $instance->imagestyle, 'mod_aisafetyhazards', null, 'en'),
-        ], 'en');
+            ],
+            'en'
+        );
         $prompt = $build($description);
         // The picture route accepts at most 2,000 characters: shorten the description, never the hazards or rules.
         $over = \core_text::strlen($prompt) - \mod_aisafetyhazards\local\ai\lmslabs::MAX_PROMPT;
@@ -182,10 +187,14 @@ class lesson {
                 }
                 $controls = [];
                 foreach (catalogue::KINDS as $kind) {
-                    $controls[$kind] = array_values(array_filter(array_map(
-                        fn($c) => self::draft_control($c),
-                        (array)($h[$kind] ?? ($h['controls'][$kind] ?? []))
-                    )));
+                    $controls[$kind] = array_values(
+                        array_filter(
+                            array_map(
+                                fn($c) => self::draft_control($c),
+                                (array)($h[$kind] ?? ($h['controls'][$kind] ?? []))
+                            )
+                        )
+                    );
                 }
                 $hazards[] = [
                     'name' => $h['name'] ?? '',
@@ -254,8 +263,11 @@ class lesson {
      */
     public static function log_ai(int $aid, int $userid, string $action, string $status): void {
         global $DB;
-        $DB->insert_record('aisafetyhazards_ailog', (object)['aisafetyhazardsid' => $aid, 'userid' => $userid,
-            'action' => $action, 'status' => $status, 'timecreated' => time()]);
+        $DB->insert_record(
+            'aisafetyhazards_ailog',
+            (object)['aisafetyhazardsid' => $aid, 'userid' => $userid,
+            'action' => $action, 'status' => $status, 'timecreated' => time()]
+        );
     }
 
     /**

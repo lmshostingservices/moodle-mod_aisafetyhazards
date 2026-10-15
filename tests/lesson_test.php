@@ -57,16 +57,22 @@ final class lesson_test extends \advanced_testcase {
         $this->assertSame('the unsupported trench wall on the left', $trench['anchor']);
         $shoring = $trench['controls']['reduce'][0];
         $this->assertSame(['engineering', 3, 0, 1], [$shoring['level'], $shoring['dl'], $shoring['dc'], $shoring['correct']]);
-        $this->assertSame(['ppe', 0, 1], [$trench['controls']['ppe'][0]['level'], $trench['controls']['ppe'][0]['dl'],
-            $trench['controls']['ppe'][0]['dc']]);
+        $this->assertSame(
+            ['ppe', 0, 1],
+            [$trench['controls']['ppe'][0]['level'], $trench['controls']['ppe'][0]['dl'],
+            $trench['controls']['ppe'][0]['dc']]
+        );
         // A wrong label never lowers the risk.
         $sign = $trench['controls']['reduce'][3];
         $this->assertSame([0, 0, 0], [$sign['correct'], $sign['dl'], $sign['dc']]);
         // The right answer "Cannot be eliminated" removes nothing; the drive-through route removes the hazard.
         $cannot = $trench['controls']['eliminate'][0];
         $this->assertSame([1, 0], [$cannot['correct'], $cannot['eliminates']]);
-        $this->assertSame([1, 1, 'elimination'], [$truck['controls']['eliminate'][0]['correct'],
-            $truck['controls']['eliminate'][0]['eliminates'], $truck['controls']['eliminate'][0]['level']]);
+        $this->assertSame(
+            [1, 1, 'elimination'],
+            [$truck['controls']['eliminate'][0]['correct'],
+            $truck['controls']['eliminate'][0]['eliminates'], $truck['controls']['eliminate'][0]['level']]
+        );
         $this->assertSame([], $truck['controls']['reduce']);
         foreach (['nothing', '{"scenes": []}'] as $bad) {
             try {
@@ -149,9 +155,12 @@ final class lesson_test extends \advanced_testcase {
         $this->assertStringContainsString('- the unsupported trench wall on the left', $prompt);
         $this->assertStringNotContainsString('Hot work sparks', $prompt);
         $this->assertStringNotContainsString('photograph of', $prompt);
-        $this->assertSame('A photograph of a cafe.', lesson::style_words(
-            'A bright, friendly flat illustration of a cafe.',
-            'photo'
-        ));
+        $this->assertSame(
+            'A photograph of a cafe.',
+            lesson::style_words(
+                'A bright, friendly flat illustration of a cafe.',
+                'photo'
+            )
+        );
     }
 }

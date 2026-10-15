@@ -222,10 +222,13 @@ if ($tab === 'learners') {
         \core\dataformat::download_data('aisafetyhazards-learners', $download, $columns, $generator);
         exit;
     }
-    $rows = array_map(function ($r) {
-        unset($r['user']);
-        return $r;
-    }, $learnerrows($page * $perpage, $perpage));
+    $rows = array_map(
+        function ($r) {
+            unset($r['user']);
+            return $r;
+        },
+        $learnerrows($page * $perpage, $perpage)
+    );
     $data['rows'] = $rows;
     $data['hasrows'] = !empty($rows);
     $data['paging'] = $OUTPUT->paging_bar($count, $page, $perpage, $baseurl);
@@ -277,8 +280,11 @@ if ($tab === 'attempts') {
     [$ufsql, $ufparams] = $userfilter('a.userid');
     $where = "a.aisafetyhazardsid = :aid AND u.deleted = 0 $ufsql";
     $params = ['aid' => $instance->id] + $ufparams;
-    $count = $DB->count_records_sql("SELECT COUNT(1) FROM {aisafetyhazards_attempt} a JOIN {user} u ON u.id = a.userid
-        WHERE $where", $params);
+    $count = $DB->count_records_sql(
+        "SELECT COUNT(1) FROM {aisafetyhazards_attempt} a JOIN {user} u ON u.id = a.userid
+        WHERE $where",
+        $params
+    );
     $params += $userselect->params;
     $sql = "SELECT a.id, a.userid, a.attempt, a.state, a.playmode, a.timestart, a.timefinish, a.score, a.safety
                    {$userselect->selects}

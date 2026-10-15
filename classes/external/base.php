@@ -104,11 +104,15 @@ abstract class base extends external_api {
      * @return \core_external\external_single_structure
      */
     protected static function request_structure(): \core_external\external_single_structure {
-        return new \core_external\external_single_structure([
+        return new \core_external\external_single_structure(
+            [
             'id' => new \core_external\external_value(PARAM_INT, 'Request id in this site'),
             'operation' => new \core_external\external_value(PARAM_ALPHA, 'scene or image'),
-            'status' => new \core_external\external_value(PARAM_ALPHA, 'pending, uncertain, completed, failed, conflict, '
-                . 'expired, lost or dismissed'),
+            'status' => new \core_external\external_value(
+                PARAM_ALPHA,
+                'pending, uncertain, completed, failed, conflict, '
+                . 'expired, lost or dismissed'
+            ),
             'title' => new \core_external\external_value(PARAM_TEXT, 'Brief or scene title'),
             'message' => new \core_external\external_value(PARAM_TEXT, 'What happened and what to do next'),
             'requestid' => new \core_external\external_value(PARAM_ALPHANUMEXT, 'LMS Labs reference'),
@@ -120,6 +124,7 @@ abstract class base extends external_api {
             'sceneurl' => new \core_external\external_value(PARAM_URL, 'Scene editor URL, empty when none'),
             'openscene' => new \core_external\external_value(PARAM_BOOL, 'Offer a link to the drafted scene'),
             'timecreated' => new \core_external\external_value(PARAM_TEXT, 'When it was asked for'),
-        ]);
+            ]
+        );
     }
 }

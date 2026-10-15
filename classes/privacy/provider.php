@@ -50,7 +50,9 @@ class provider implements
      * @return collection
      */
     public static function get_metadata(collection $collection): collection {
-        $collection->add_database_table('aisafetyhazards_attempt', [
+        $collection->add_database_table(
+            'aisafetyhazards_attempt',
+            [
             'userid' => 'privacy:metadata:attempt:userid',
             'attempt' => 'privacy:metadata:attempt:attempt',
             'state' => 'privacy:metadata:attempt:state',
@@ -60,8 +62,12 @@ class provider implements
             'safety' => 'privacy:metadata:attempt:safety',
             'timestart' => 'privacy:metadata:attempt:timestart',
             'timefinish' => 'privacy:metadata:attempt:timefinish',
-        ], 'privacy:metadata:attempt');
-        $collection->add_database_table('aisafetyhazards_choice', [
+            ],
+            'privacy:metadata:attempt'
+        );
+        $collection->add_database_table(
+            'aisafetyhazards_choice',
+            [
             'attemptid' => 'privacy:metadata:choice:attemptid',
             'sceneid' => 'privacy:metadata:choice:sceneid',
             'hazardid' => 'privacy:metadata:choice:hazardid',
@@ -69,26 +75,40 @@ class provider implements
             'itemid' => 'privacy:metadata:choice:itemid',
             'correct' => 'privacy:metadata:choice:correct',
             'timecreated' => 'privacy:metadata:choice:timecreated',
-        ], 'privacy:metadata:choice');
-        $collection->add_database_table('aisafetyhazards_ailog', [
+            ],
+            'privacy:metadata:choice'
+        );
+        $collection->add_database_table(
+            'aisafetyhazards_ailog',
+            [
             'userid' => 'privacy:metadata:ailog:userid',
             'action' => 'privacy:metadata:ailog:action',
             'status' => 'privacy:metadata:ailog:status',
             'timecreated' => 'privacy:metadata:ailog:timecreated',
-        ], 'privacy:metadata:ailog');
-        $collection->add_database_table('aisafetyhazards_aireq', [
+            ],
+            'privacy:metadata:ailog'
+        );
+        $collection->add_database_table(
+            'aisafetyhazards_aireq',
+            [
             'userid' => 'privacy:metadata:aireq:userid',
             'body' => 'privacy:metadata:aireq:body',
             'status' => 'privacy:metadata:aireq:status',
             'requestid' => 'privacy:metadata:aireq:requestid',
             'timecreated' => 'privacy:metadata:aireq:timecreated',
-        ], 'privacy:metadata:aireq');
-        $collection->add_external_location_link('lmslabs', [
+            ],
+            'privacy:metadata:aireq'
+        );
+        $collection->add_external_location_link(
+            'lmslabs',
+            [
             'brief' => 'privacy:metadata:lmslabs:brief',
             'prompt' => 'privacy:metadata:lmslabs:prompt',
             'voicetext' => 'privacy:metadata:lmslabs:voicetext',
             'siteid' => 'privacy:metadata:lmslabs:siteid',
-        ], 'privacy:metadata:lmslabs');
+            ],
+            'privacy:metadata:lmslabs'
+        );
         $collection->add_subsystem_link('core_grades', [], 'privacy:metadata:core_grades');
         return $collection;
     }
@@ -108,8 +128,11 @@ class provider implements
                       JOIN {modules} m ON m.id = cm.module AND m.name = :modname
                       JOIN {{$table}} t ON t.aisafetyhazardsid = cm.instance
                      WHERE t.userid = :userid";
-            $contextlist->add_from_sql($sql, ['ctxlevel' => CONTEXT_MODULE, 'modname' => 'aisafetyhazards',
-                'userid' => $userid]);
+            $contextlist->add_from_sql(
+                $sql,
+                ['ctxlevel' => CONTEXT_MODULE, 'modname' => 'aisafetyhazards',
+                'userid' => $userid]
+            );
         }
         return $contextlist;
     }

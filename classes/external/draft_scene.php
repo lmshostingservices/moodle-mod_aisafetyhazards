@@ -36,10 +36,12 @@ class draft_scene extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'cmid' => new external_value(PARAM_INT, 'Course module id'),
             'brief' => new external_value(PARAM_TEXT, 'What the scene should be about (at most 2,000 characters)'),
-        ]);
+            ]
+        );
     }
 
     /**

@@ -109,8 +109,11 @@ final class learning_test extends \advanced_testcase {
         $data = learning::start_attempt($instance, $context, (int)$student->id, 'study');
         $spot = $data['scenes'][0]['spots'][0];
         $this->assertSame('Trench wall collapse', $spot['name']);
-        $this->assertSame(1, $spot['rows']['eliminate'][0]['correct'] + $spot['rows']['eliminate'][1]['correct']
-            + $spot['rows']['eliminate'][2]['correct']);
+        $this->assertSame(
+            1,
+            $spot['rows']['eliminate'][0]['correct'] + $spot['rows']['eliminate'][1]['correct']
+            + $spot['rows']['eliminate'][2]['correct']
+        );
         $this->assertSame(['likelihood' => 1, 'consequence' => 3, 'eliminated' => 0, 'rating' => 'low'], $spot['now']);
         $this->assertSame('eliminated', $data['scenes'][0]['spots'][1]['now']['rating']);
     }
@@ -129,15 +132,18 @@ final class learning_test extends \advanced_testcase {
         $tid = (int)$trench['id'];
 
         // Controls wait until the hazard is found; a distractor or another hazard's label does not find it.
-        $this->expect_error('findhazardfirst', fn() => learning::drop(
-            $instance,
-            $context,
-            $attempt,
-            $sceneid,
-            'eliminate',
-            $tid,
-            $this->control($trench, 'eliminate')
-        ));
+        $this->expect_error(
+            'findhazardfirst',
+            fn() => learning::drop(
+                $instance,
+                $context,
+                $attempt,
+                $sceneid,
+                'eliminate',
+                $tid,
+                $this->control($trench, 'eliminate')
+            )
+        );
         $r = learning::drop($instance, $context, $attempt, $sceneid, 'hazard', $tid, (int)$distractors[0]['id']);
         $this->assertSame([1, 0, 0], [$r['marked'], $r['correct'], $r['found']]);
         $this->assertStringContainsString('Hot work sparks', $r['reason']);
@@ -149,43 +155,60 @@ final class learning_test extends \advanced_testcase {
         $this->expect_error('alreadyplaced', fn() => learning::drop($instance, $context, $attempt, $sceneid, 'hazard', $tid, $tid));
 
         // Rows in order: eliminate first.
-        $this->expect_error('rowsinorder', fn() => learning::drop(
-            $instance,
-            $context,
-            $attempt,
-            $sceneid,
-            'reduce',
-            $tid,
-            $this->control($trench, 'reduce')
-        ));
+        $this->expect_error(
+            'rowsinorder',
+            fn() => learning::drop(
+                $instance,
+                $context,
+                $attempt,
+                $sceneid,
+                'reduce',
+                $tid,
+                $this->control($trench, 'reduce')
+            )
+        );
         $r = learning::drop($instance, $context, $attempt, $sceneid, 'eliminate', $tid, $this->control($trench, 'eliminate'));
         $this->assertSame([1, 0, 1], [$r['correct'], $r['eliminates'], $r['done']['eliminate']]);
         $this->assertSame(4, $r['now']['likelihood'], '"Cannot be eliminated" removes nothing.');
 
         // Shoring lowers the likelihood by 3; a wrong label lowers nothing; the hard hat lowers the consequence.
         $r = learning::drop($instance, $context, $attempt, $sceneid, 'reduce', $tid, $this->control($trench, 'reduce'));
-        $this->assertSame(['engineering', 3, 0, 1, 5], [$r['level'], $r['dl'], $r['dc'], $r['now']['likelihood'],
-            $r['now']['consequence']]);
+        $this->assertSame(
+            ['engineering', 3, 0, 1, 5],
+            [$r['level'], $r['dl'], $r['dc'], $r['now']['likelihood'],
+            $r['now']['consequence']]
+        );
         $r = learning::drop($instance, $context, $attempt, $sceneid, 'reduce', $tid, $this->control($trench, 'reduce', false));
         $this->assertSame([0, 1, 5, 0], [$r['correct'], $r['now']['likelihood'], $r['now']['consequence'], $r['done']['reduce']]);
-        $this->expect_error('rowsinorder', fn() => learning::drop(
-            $instance,
-            $context,
-            $attempt,
-            $sceneid,
-            'ppe',
-            $tid,
-            $this->control($trench, 'ppe')
-        ));
+        $this->expect_error(
+            'rowsinorder',
+            fn() => learning::drop(
+                $instance,
+                $context,
+                $attempt,
+                $sceneid,
+                'ppe',
+                $tid,
+                $this->control($trench, 'ppe')
+            )
+        );
 
         // The truck: the right elimination removes the hazard and its other rows.
         $hid = (int)$truck['id'];
         learning::drop($instance, $context, $attempt, $sceneid, 'hazard', $hid, $hid);
-        $r = learning::drop($instance, $context, $attempt, $sceneid, 'eliminate', $hid, $this->control(
-            $truck,
+        $r = learning::drop(
+            $instance,
+            $context,
+            $attempt,
+            $sceneid,
             'eliminate',
-            false
-        ));
+            $hid,
+            $this->control(
+                $truck,
+                'eliminate',
+                false
+            )
+        );
         $this->assertSame([0, 0], [$r['correct'], $r['done']['eliminate']], 'Practice: try again until it is right.');
         $r = learning::drop($instance, $context, $attempt, $sceneid, 'eliminate', $hid, $this->control($truck, 'eliminate'));
         $this->assertSame([1, 'eliminated', 1], [$r['eliminates'], $r['now']['rating'], $r['complete']]);
@@ -210,15 +233,18 @@ final class learning_test extends \advanced_testcase {
         $this->assertSame(0, $recap[0]['perfect']);
         $this->assertSame(1, $recap[2]['perfect']);
         $this->assertEquals(76.47, (float)$DB->get_field('aisafetyhazards_attempt', 'score', ['id' => $attempt->id]));
-        $this->expect_error('attemptfinished', fn() => learning::drop(
-            $instance,
-            $context,
-            $attempt,
-            $sceneid,
-            'hazard',
-            $tid,
-            $tid
-        ));
+        $this->expect_error(
+            'attemptfinished',
+            fn() => learning::drop(
+                $instance,
+                $context,
+                $attempt,
+                $sceneid,
+                'hazard',
+                $tid,
+                $tid
+            )
+        );
     }
 
     /**
@@ -237,27 +263,33 @@ final class learning_test extends \advanced_testcase {
         $this->assertSame([0, 0, '', 1, 'Hot work sparks'], [$r['marked'], $r['correct'], $r['reason'], $r['found'], $r['name']]);
         $this->assertNull($r['now']);
         // The distractor label is used.
-        $this->expect_error('alreadyplaced', fn() => learning::drop(
-            $instance,
-            $context,
-            $attempt,
-            $sceneid,
-            'hazard',
-            (int)$fall['id'],
-            (int)$distractors[0]['id']
-        ));
+        $this->expect_error(
+            'alreadyplaced',
+            fn() => learning::drop(
+                $instance,
+                $context,
+                $attempt,
+                $sceneid,
+                'hazard',
+                (int)$fall['id'],
+                (int)$distractors[0]['id']
+            )
+        );
         // One elimination only, even a wrong one; the reduce row ends when the learner says so.
         $r = learning::drop($instance, $context, $attempt, $sceneid, 'eliminate', $tid, $this->control($trench, 'eliminate'));
         $this->assertSame(1, $r['done']['eliminate']);
-        $this->expect_error('alreadyplaced', fn() => learning::drop(
-            $instance,
-            $context,
-            $attempt,
-            $sceneid,
-            'eliminate',
-            $tid,
-            $this->control($trench, 'eliminate', false)
-        ));
+        $this->expect_error(
+            'alreadyplaced',
+            fn() => learning::drop(
+                $instance,
+                $context,
+                $attempt,
+                $sceneid,
+                'eliminate',
+                $tid,
+                $this->control($trench, 'eliminate', false)
+            )
+        );
         learning::drop($instance, $context, $attempt, $sceneid, 'reduce', $tid, $this->control($trench, 'reduce'));
         $r = learning::done_row($instance, $context, $attempt, $sceneid, $tid, 'reduce');
         $this->assertSame(1, $r['done']['reduce']);
@@ -267,11 +299,19 @@ final class learning_test extends \advanced_testcase {
         // The truck: a wrong elimination ends its rows too (it could have been removed).
         $hid = (int)$truck['id'];
         learning::drop($instance, $context, $attempt, $sceneid, 'hazard', $hid, $hid);
-        $r = learning::drop($instance, $context, $attempt, $sceneid, 'eliminate', $hid, $this->control(
-            $truck,
+        $r = learning::drop(
+            $instance,
+            $context,
+            $attempt,
+            $sceneid,
             'eliminate',
-            false
-        ));
+            $hid,
+            $this->control(
+                $truck,
+                'eliminate',
+                false
+            )
+        );
         $this->assertSame(1, $r['complete']);
         $attempt = $this->getDataGenerator()->get_plugin_generator('mod_aisafetyhazards')->play_attempt(
             $instance,
@@ -301,15 +341,18 @@ final class learning_test extends \advanced_testcase {
         [$course, $cm, $context, $instance, $student, , $plugin] = $this->setup_activity(['testmode' => 1], 2);
         $data = learning::start_attempt($instance, $context, (int)$student->id, 'study');
         $attempt = $DB->get_record('aisafetyhazards_attempt', ['id' => $data['attemptid']]);
-        $this->expect_error('invalidlabel', fn() => learning::drop(
-            $instance,
-            $context,
-            $attempt,
-            (int)$data['scenes'][0]['sceneid'],
-            'hazard',
-            (int)$data['scenes'][0]['spots'][0]['id'],
-            (int)$data['scenes'][0]['spots'][0]['id']
-        ));
+        $this->expect_error(
+            'invalidlabel',
+            fn() => learning::drop(
+                $instance,
+                $context,
+                $attempt,
+                (int)$data['scenes'][0]['sceneid'],
+                'hazard',
+                (int)$data['scenes'][0]['spots'][0]['id'],
+                (int)$data['scenes'][0]['spots'][0]['id']
+            )
+        );
         $summary = learning::finish_attempt($instance, $cm, $course, $context, $attempt);
         $this->assertSame([100, 'practice'], [$summary['score'], $summary['next']]);
         $this->assertSame([], $summary['recap'][0]['hazards'][0]['missed']);
@@ -334,12 +377,15 @@ final class learning_test extends \advanced_testcase {
         }
         $this->assertFalse(learning::can_start($instance, (int)$student->id));
         $this->assertTrue(learning::can_start($instance, (int)$student->id, 'study'));
-        $this->expect_error('nomoreattempts', fn() => learning::start_attempt(
-            $instance,
-            $context,
-            (int)$student->id,
-            'practice'
-        ));
+        $this->expect_error(
+            'nomoreattempts',
+            fn() => learning::start_attempt(
+                $instance,
+                $context,
+                (int)$student->id,
+                'practice'
+            )
+        );
         // With mistakes: 13 right of 13 needed, 3 wrong (a distractor and two wrong reduce labels).
         $expected = [manager::GRADE_HIGHEST => 100, manager::GRADE_AVERAGE => 90.625, manager::GRADE_FIRST => 81.25,
             manager::GRADE_LAST => 100];

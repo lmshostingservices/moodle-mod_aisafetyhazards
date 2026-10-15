@@ -341,10 +341,12 @@ class manager {
      * @return stdClass[]
      */
     public static function ready_scenes(stdClass $instance, \context $context): array {
-        return array_values(array_filter(
-            self::get_scenes((int)$instance->id),
-            fn($scene) => self::scene_ready($context, $scene)
-        ));
+        return array_values(
+            array_filter(
+                self::get_scenes((int)$instance->id),
+                fn($scene) => self::scene_ready($context, $scene)
+            )
+        );
     }
 
     /**
@@ -390,7 +392,9 @@ class manager {
         );
         $now = time();
         $title = self::clean_line($data['title'] ?? '');
-        return (int)$DB->insert_record('aisafetyhazards_scene', (object)[
+        return (int)$DB->insert_record(
+            'aisafetyhazards_scene',
+            (object)[
             'aisafetyhazardsid' => $instance->id,
             'sortorder' => $sortorder + 1,
             'title' => $title !== '' ? $title : get_string('newscene', 'mod_aisafetyhazards'),
@@ -399,7 +403,8 @@ class manager {
             'teachingnote' => self::clean_text($data['teachingnote'] ?? '', 2000),
             'timecreated' => $now,
             'timemodified' => $now,
-        ]);
+            ]
+        );
     }
 
     /**
@@ -670,10 +675,12 @@ class manager {
     public static function view(stdClass $instance, stdClass $course, $cm, \context_module $context): void {
         global $CFG;
         require_once($CFG->libdir . '/completionlib.php');
-        $event = \mod_aisafetyhazards\event\course_module_viewed::create([
+        $event = \mod_aisafetyhazards\event\course_module_viewed::create(
+            [
             'objectid' => $instance->id,
             'context' => $context,
-        ]);
+            ]
+        );
         $event->add_record_snapshot('course', $course);
         $event->add_record_snapshot('aisafetyhazards', $instance);
         $event->trigger();

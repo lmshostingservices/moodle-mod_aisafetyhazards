@@ -37,10 +37,12 @@ class preview_lesson extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'cmid' => new external_value(PARAM_INT, 'Course module id'),
             'draft' => new external_value(PARAM_TEXT, 'Lesson draft JSON, as pasted'),
-        ]);
+            ]
+        );
     }
 
     /**
@@ -63,8 +65,10 @@ class preview_lesson extends base {
      * @return external_single_structure
      */
     public static function execute_returns(): external_single_structure {
-        return new external_single_structure([
-            'data' => new external_value(PARAM_RAW, 'The scenes that can be created, cleaned, as JSON'), // pipeline-ignore: PARAM_RAW — Output-only JSON serialization, not an input parameter.
-        ]);
+        return new external_single_structure(
+            [
+            'data' => new external_value(PARAM_TEXT, 'The scenes that can be created, cleaned, as JSON'),
+            ]
+        );
     }
 }

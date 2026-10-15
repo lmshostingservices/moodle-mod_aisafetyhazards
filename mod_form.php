@@ -61,10 +61,15 @@ class mod_aisafetyhazards_mod_form extends moodleform_mod {
         $mform->addElement('select', 'contentlang', get_string('contentlang', $c), catalogue::language_options());
         $mform->setDefault('contentlang', $config->defaultcontentlang ?? 'en');
         $mform->addHelpButton('contentlang', 'contentlang', $c);
-        $mform->addElement('select', 'imagestyle', get_string('imagestyle', $c), [
+        $mform->addElement(
+            'select',
+            'imagestyle',
+            get_string('imagestyle', $c),
+            [
             'photo' => get_string('imagestyle_photo_name', $c),
             'illustration' => get_string('imagestyle_illustration_name', $c),
-        ]);
+            ]
+        );
 
         // Play.
         $mform->addElement('header', 'playhdr', get_string('playsettings', $c));
@@ -107,12 +112,17 @@ class mod_aisafetyhazards_mod_form extends moodleform_mod {
         // Grade.
         $this->standard_grading_coursemodule_elements();
         $mform->setDefault('grade', 100);
-        $mform->addElement('select', 'grademethod', get_string('grademethod', $c), [
+        $mform->addElement(
+            'select',
+            'grademethod',
+            get_string('grademethod', $c),
+            [
             manager::GRADE_HIGHEST => get_string('gradehighest', $c),
             manager::GRADE_AVERAGE => get_string('gradeaverage', $c),
             manager::GRADE_FIRST => get_string('gradefirst', $c),
             manager::GRADE_LAST => get_string('gradelast', $c),
-        ]);
+            ]
+        );
         $mform->addHelpButton('grademethod', 'grademethod', $c);
         $mform->hideIf('grademethod', 'grade[modgrade_type]', 'eq', 'none');
 

@@ -34,27 +34,51 @@ class backup_aisafetyhazards_activity_structure_step extends backup_activity_str
     protected function define_structure() {
         $userinfo = $this->get_setting_value('userinfo');
 
-        $root = new backup_nested_element('aisafetyhazards', ['id'], [
+        $root = new backup_nested_element(
+            'aisafetyhazards',
+            ['id'],
+            [
             'name', 'intro', 'introformat', 'industry', 'subindustry', 'task', 'customindustry', 'customsubindustry',
             'customtask', 'contentlang', 'scenecount', 'imagestyle', 'studymode', 'practicemode', 'testmode', 'passmark',
             'shuffleoptions', 'sounds', 'voiceparts', 'mustlisten', 'grade', 'grademethod', 'maxattempts',
             'completionallscenes', 'completionpasstest', 'timecreated', 'timemodified',
-        ]);
+            ]
+        );
         $scenes = new backup_nested_element('scenes');
-        $scene = new backup_nested_element('scene', ['id'], ['sortorder', 'title', 'context', 'imageprompt', 'teachingnote',
-            'timecreated', 'timemodified']);
+        $scene = new backup_nested_element(
+            'scene',
+            ['id'],
+            ['sortorder', 'title', 'context', 'imageprompt', 'teachingnote',
+            'timecreated', 'timemodified']
+        );
         $hazards = new backup_nested_element('hazards');
-        $hazard = new backup_nested_element('hazard', ['id'], ['sortorder', 'name', 'anchor', 'why', 'likelihood',
-            'consequence', 'x', 'y', 'placed', 'distractor', 'timemodified']);
+        $hazard = new backup_nested_element(
+            'hazard',
+            ['id'],
+            ['sortorder', 'name', 'anchor', 'why', 'likelihood',
+            'consequence', 'x', 'y', 'placed', 'distractor', 'timemodified']
+        );
         $controls = new backup_nested_element('controls');
-        $control = new backup_nested_element('control', ['id'], ['sortorder', 'kind', 'text', 'correct', 'eliminates',
-            'level', 'dl', 'dc', 'reason']);
+        $control = new backup_nested_element(
+            'control',
+            ['id'],
+            ['sortorder', 'kind', 'text', 'correct', 'eliminates',
+            'level', 'dl', 'dc', 'reason']
+        );
         $attempts = new backup_nested_element('attempts');
-        $attempt = new backup_nested_element('attempt', ['id'], ['userid', 'attempt', 'state', 'playmode', 'sceneorder', 'score',
-            'safety', 'timestart', 'timefinish', 'timemodified']);
+        $attempt = new backup_nested_element(
+            'attempt',
+            ['id'],
+            ['userid', 'attempt', 'state', 'playmode', 'sceneorder', 'score',
+            'safety', 'timestart', 'timefinish', 'timemodified']
+        );
         $choices = new backup_nested_element('choices');
-        $choice = new backup_nested_element('choice', ['id'], ['sceneid', 'hazardid', 'kind', 'itemid', 'correct',
-            'timecreated']);
+        $choice = new backup_nested_element(
+            'choice',
+            ['id'],
+            ['sceneid', 'hazardid', 'kind', 'itemid', 'correct',
+            'timecreated']
+        );
 
         $root->add_child($scenes);
         $scenes->add_child($scene);

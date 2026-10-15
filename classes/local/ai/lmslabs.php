@@ -67,6 +67,9 @@ class lmslabs implements provider {
     /** @var string Dedicated AI Safety Hazards picture route. */
     public const IMAGE_ROUTE = '/api/moodle/ai-safetyhazards/images';
 
+    /** @var int Seconds to wait for a picture (finding the hazard positions adds to the time it takes). */
+    public const IMAGE_TIMEOUT = 170;
+
     /** @var int Credits LMS Labs charges per successful picture (owner-approved tariff). */
     public const IMAGE_CREDITS = 5;
 
@@ -111,8 +114,12 @@ class lmslabs implements provider {
                 require_once($CFG->libdir . '/filelib.php');
                 $curl = new \curl();
                 $curl->setHeader($headers);
-                $body = $curl->get($url, [], ['CURLOPT_CONNECTTIMEOUT' => 3, 'CURLOPT_TIMEOUT' => 8,
-                    'CURLOPT_FOLLOWLOCATION' => false]);
+                $body = $curl->get(
+                    $url,
+                    [],
+                    ['CURLOPT_CONNECTTIMEOUT' => 3, 'CURLOPT_TIMEOUT' => 8,
+                    'CURLOPT_FOLLOWLOCATION' => false]
+                );
                 $status = $curl->get_errno() ? 0 : (int)($curl->get_info()['http_code'] ?? 0);
             }
             $data = json_decode((string)$body, true);
@@ -190,12 +197,16 @@ class lmslabs implements provider {
             require_once($CFG->libdir . '/filelib.php');
             $curl = new \curl(['ignoresecurity' => false]);
             $curl->setHeader($headers);
-            $response = $curl->post($url, $body, [
+            $response = $curl->post(
+                $url,
+                $body,
+                [
                 'CURLOPT_CONNECTTIMEOUT' => 10,
-                // Both routes finish within 85 to 90 seconds.
+                // Drafts and clips finish within 85 to 90 seconds; pictures are given longer.
                 'CURLOPT_TIMEOUT' => $timeout,
                 'CURLOPT_FOLLOWLOCATION' => false,
-            ]);
+                ]
+            );
             if ($curl->get_errno()) {
                 return [0, [], ''];
             }
@@ -228,8 +239,12 @@ class lmslabs implements provider {
             require_once($CFG->libdir . '/filelib.php');
             $curl = new \curl();
             $curl->setHeader($headers);
-            $body = $curl->get($url, [], ['CURLOPT_CONNECTTIMEOUT' => 5, 'CURLOPT_TIMEOUT' => 15,
-                'CURLOPT_FOLLOWLOCATION' => false]);
+            $body = $curl->get(
+                $url,
+                [],
+                ['CURLOPT_CONNECTTIMEOUT' => 5, 'CURLOPT_TIMEOUT' => 15,
+                'CURLOPT_FOLLOWLOCATION' => false]
+            );
             if ($curl->get_errno()) {
                 return null;
             }
@@ -292,8 +307,12 @@ class lmslabs implements provider {
             $curl = new \curl();
             $curl->setHeader($headers);
             // Never follow a redirect: the API key header would be sent on to the new address.
-            $body = $curl->get($url, [], ['CURLOPT_CONNECTTIMEOUT' => 5, 'CURLOPT_TIMEOUT' => 10,
-                'CURLOPT_FOLLOWLOCATION' => false]);
+            $body = $curl->get(
+                $url,
+                [],
+                ['CURLOPT_CONNECTTIMEOUT' => 5, 'CURLOPT_TIMEOUT' => 10,
+                'CURLOPT_FOLLOWLOCATION' => false]
+            );
             if ($curl->get_errno()) {
                 return null;
             }

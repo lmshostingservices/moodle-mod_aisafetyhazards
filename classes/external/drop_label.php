@@ -36,13 +36,15 @@ class drop_label extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'attemptid' => new external_value(PARAM_INT, 'Attempt id'),
             'sceneid' => new external_value(PARAM_INT, 'Scene id'),
             'kind' => new external_value(PARAM_ALPHA, 'hazard, eliminate, reduce or ppe'),
             'hazardid' => new external_value(PARAM_INT, 'The spot or hazard the label was dropped on'),
             'itemid' => new external_value(PARAM_INT, 'The label: a hazard id or a control id'),
-        ]);
+            ]
+        );
     }
 
     /**
@@ -56,8 +58,11 @@ class drop_label extends base {
      * @return array
      */
     public static function execute(int $attemptid, int $sceneid, string $kind, int $hazardid, int $itemid): array {
-        $params = self::validate_parameters(self::execute_parameters(), ['attemptid' => $attemptid, 'sceneid' => $sceneid,
-            'kind' => $kind, 'hazardid' => $hazardid, 'itemid' => $itemid]);
+        $params = self::validate_parameters(
+            self::execute_parameters(),
+            ['attemptid' => $attemptid, 'sceneid' => $sceneid,
+            'kind' => $kind, 'hazardid' => $hazardid, 'itemid' => $itemid]
+        );
         [, , $instance, $context, $attempt] = self::load_attempt($params['attemptid']);
         $result = learning::drop(
             $instance,
@@ -84,7 +89,8 @@ class drop_label extends base {
         foreach (\mod_aisafetyhazards\local\catalogue::KINDS as $kind) {
             $flags[$kind] = new external_value(PARAM_BOOL, 'The ' . $kind . ' row is finished');
         }
-        return new external_single_structure([
+        return new external_single_structure(
+            [
             'marked' => new external_value(PARAM_BOOL, 'Marked now (Practice); Test marks at the end'),
             'correct' => new external_value(PARAM_BOOL, 'The label was right (Practice)'),
             'reason' => new external_value(PARAM_TEXT, 'Why (Practice)'),
@@ -99,16 +105,21 @@ class drop_label extends base {
             'complete' => new external_value(PARAM_BOOL, 'The hazard is finished'),
             'scenecomplete' => new external_value(PARAM_BOOL, 'The scene is finished'),
             'allcomplete' => new external_value(PARAM_BOOL, 'Every scene is finished'),
-            'now' => new external_single_structure([
+            'now' => new external_single_structure(
+                [
                 'likelihood' => new external_value(PARAM_INT, 'Likelihood now, 1 to 5'),
                 'consequence' => new external_value(PARAM_INT, 'Consequence now, 1 to 5'),
                 'eliminated' => new external_value(PARAM_BOOL, 'The hazard is removed'),
                 'rating' => new external_value(PARAM_ALPHA, 'low, medium, high, extreme or eliminated'),
-            ], 'The hazard\'s risk now (Practice)', VALUE_OPTIONAL),
+                ],
+                'The hazard\'s risk now (Practice)',
+                VALUE_OPTIONAL
+            ),
             'voice' => new external_multiple_structure(
                 new external_value(PARAM_URL, 'Voiceover clip'),
                 'What is read now (Practice), empty when there is nothing'
             ),
-        ]);
+            ]
+        );
     }
 }

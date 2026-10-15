@@ -165,6 +165,12 @@ class requests {
         if ($prompt === '' || \core_text::strlen($prompt) > lmslabs::MAX_PROMPT) {
             throw new moodle_exception('aierror_prompt_too_long', 'mod_aisafetyhazards', '', (object)['requestid' => '-']);
         }
+        // A picture already asked for and not resolved (still being made, or its answer was lost) is shown again,
+        // never sent again with a new key: the teacher uses "Check again" on it, or dismisses it.
+        $waiting = self::waiting((int)$instance->id, self::IMAGE, (int)$scene->id);
+        if ($waiting !== null) {
+            return $waiting;
+        }
         $style = in_array((string)$instance->imagestyle, lmslabs::STYLES, true) ? (string)$instance->imagestyle
             : 'illustration';
         $body = ['prompt' => $prompt, 'style' => $style];
@@ -448,6 +454,30 @@ class requests {
     }
 
     /**
+     * The unresolved request (pending or uncertain) for one thing, if there is one.
+     *
+     * @param int $instanceid
+     * @param string $operation
+     * @param int $targetid
+     * @return stdClass|null
+     */
+    public static function waiting(int $instanceid, string $operation, int $targetid): ?stdClass {
+        global $DB;
+        [$insql, $params] = $DB->get_in_or_equal(self::CHECKABLE, SQL_PARAMS_NAMED);
+        $params += ['aid' => $instanceid, 'op' => $operation, 'target' => $targetid];
+        $rows = $DB->get_records_select(
+            'aisafetyhazards_aireq',
+            "aisafetyhazardsid = :aid AND operation = :op AND targetid = :target AND status $insql",
+            $params,
+            'id DESC',
+            '*',
+            0,
+            1
+        );
+        return $rows ? reset($rows) : null;
+    }
+
+    /**
      * Requests of an activity that need attention, newest first.
      *
      * @param int $instanceid
@@ -458,12 +488,14 @@ class requests {
         global $DB;
         [$insql, $params] = $DB->get_in_or_equal(self::OPEN, SQL_PARAMS_NAMED);
         $params += ['aid' => $instanceid, 'op' => $operation];
-        return array_values($DB->get_records_select(
-            'aisafetyhazards_aireq',
-            "aisafetyhazardsid = :aid AND operation = :op AND status $insql",
-            $params,
-            'timecreated DESC, id DESC'
-        ));
+        return array_values(
+            $DB->get_records_select(
+                'aisafetyhazards_aireq',
+                "aisafetyhazardsid = :aid AND operation = :op AND status $insql",
+                $params,
+                'timecreated DESC, id DESC'
+            )
+        );
     }
 
     /**
@@ -501,11 +533,15 @@ class requests {
                 self::VOICE => lmslabs::VOICE_ROUTE, self::SCENE => lmslabs::TEXT_ROUTE];
             $accept = [self::IMAGE => 'image/png, image/webp, image/jpeg, application/json',
                 self::VOICE => 'audio/mpeg, application/json'];
+            // A picture with hazard positions can take LMS Labs up to two minutes: wait for it, and keep this page
+            // running for as long, so the answer is never cut off and lost.
+            \core_php_time_limit::raise(240);
             [$status, $headers, $body] = lmslabs::post(
                 $routes[$row->operation],
                 (string)$row->body,
                 (string)$row->idemkey,
-                $accept[$row->operation] ?? 'application/json'
+                $accept[$row->operation] ?? 'application/json',
+                $image ? lmslabs::IMAGE_TIMEOUT : 100
             );
             $row->retryafter = max(1, min(60, (int)($headers['retry-after'] ?? self::RETRY_AFTER)));
             if ($image) {
@@ -873,8 +909,12 @@ class requests {
         $prefix = $image ? 'aireq_image_' : ($import ? 'aireq_import_' : ($voice ? 'aireq_voice_' : 'aireq_scene_'));
         $status = (string)$row->status;
         if ($status === 'completed' && !$known) {
-            $message = get_string('aireq_completed_unknown', 'mod_aisafetyhazards', (object)[
-                'what' => get_string($prefix . 'done', 'mod_aisafetyhazards'), 'credits' => $credits]);
+            $message = get_string(
+                'aireq_completed_unknown',
+                'mod_aisafetyhazards',
+                (object)[
+                'what' => get_string($prefix . 'done', 'mod_aisafetyhazards'), 'credits' => $credits]
+            );
         } else if ($status === 'completed') {
             $message = get_string($prefix . 'completed' . ($row->balance === null ? '' : 'balance'), 'mod_aisafetyhazards', $a);
         } else if ($status === 'failed') {
@@ -889,15 +929,22 @@ class requests {
                 $title .= ' · ' . \core_text::substr((string)($body['text'] ?? ''), 0, 60);
             }
         } else if ($import) {
-            $title = get_string('import_title', 'mod_aisafetyhazards', (object)['count' => (int)($body['sceneCount'] ?? 0),
-                'titles' => implode(', ', array_slice((array)($body['titles'] ?? []), 0, 3))]);
+            $title = get_string(
+                'import_title',
+                'mod_aisafetyhazards',
+                (object)['count' => (int)($body['sceneCount'] ?? 0),
+                'titles' => implode(', ', array_slice((array)($body['titles'] ?? []), 0, 3))]
+            );
         } else {
             $title = \core_text::substr((string)($body['brief'] ?? ''), 0, 120);
         }
         $sceneurl = '';
         if (!$import && $row->targetid && $DB->record_exists('aisafetyhazards_scene', ['id' => $row->targetid])) {
-            $sceneurl = (new \moodle_url('/mod/aisafetyhazards/editor.php', ['id' => $context->instanceid,
-                'sceneid' => $row->targetid]))->out(false);
+            $sceneurl = (new \moodle_url(
+                '/mod/aisafetyhazards/editor.php',
+                ['id' => $context->instanceid,
+                'sceneid' => $row->targetid]
+            ))->out(false);
         }
         return [
             'id' => (int)$row->id,

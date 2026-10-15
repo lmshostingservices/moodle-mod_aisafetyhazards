@@ -34,7 +34,8 @@ class create_voice extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'sceneid' => new external_value(PARAM_INT, 'Scene id'),
             'index' => new external_value(PARAM_INT, 'Clip number in the scene, from the voiceover step'),
             'maxcredits' => new external_value(
@@ -43,7 +44,8 @@ class create_voice extends base {
                 VALUE_DEFAULT,
                 \mod_aisafetyhazards\local\ai\lmslabs::VOICE_CREDITS
             ),
-        ]);
+            ]
+        );
     }
 
     /**
@@ -60,8 +62,11 @@ class create_voice extends base {
         int $maxcredits = \mod_aisafetyhazards\local\ai\lmslabs::VOICE_CREDITS
     ): array {
         global $USER;
-        $params = self::validate_parameters(self::execute_parameters(), ['sceneid' => $sceneid, 'index' => $index,
-            'maxcredits' => $maxcredits]);
+        $params = self::validate_parameters(
+            self::execute_parameters(),
+            ['sceneid' => $sceneid, 'index' => $index,
+            'maxcredits' => $maxcredits]
+        );
         [, , $instance, $context, $scene] = self::load_scene($params['sceneid'], 'useai');
         $row = requests::start_voice($instance, (int)$USER->id, $scene, $params['index'], $params['maxcredits']);
         return requests::export($row, $context);

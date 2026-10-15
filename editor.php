@@ -66,17 +66,26 @@ $data = [
     'context' => (string)$scene->context,
     'imageprompt' => (string)$scene->imageprompt,
     'teachingnote' => (string)$scene->teachingnote,
-    'hazards' => array_map(function ($h) {
-        $h['controls'] = array_map(fn($row) => array_map(fn($c) => [
-            'id' => (int)$c['id'], 'text' => (string)$c['text'], 'correct' => (int)$c['correct'],
-            'eliminates' => (int)$c['eliminates'], 'level' => (string)$c['level'], 'dl' => (int)$c['dl'],
-            'dc' => (int)$c['dc'], 'reason' => (string)$c['reason'],
-        ], $row), $h['controls']);
-        return ['id' => (int)($h['id'] ?? 0), 'name' => (string)$h['name'], 'anchor' => (string)$h['anchor'],
+    'hazards' => array_map(
+        function ($h) {
+            $h['controls'] = array_map(
+                fn($row) => array_map(
+                    fn($c) => [
+                        'id' => (int)$c['id'], 'text' => (string)$c['text'], 'correct' => (int)$c['correct'],
+                        'eliminates' => (int)$c['eliminates'], 'level' => (string)$c['level'], 'dl' => (int)$c['dl'],
+                        'dc' => (int)$c['dc'], 'reason' => (string)$c['reason'],
+                    ],
+                    $row
+                ),
+                $h['controls']
+            );
+            return ['id' => (int)($h['id'] ?? 0), 'name' => (string)$h['name'], 'anchor' => (string)$h['anchor'],
             'why' => (string)$h['why'], 'likelihood' => (int)$h['likelihood'], 'consequence' => (int)$h['consequence'],
             'x' => (float)$h['x'], 'y' => (float)$h['y'], 'placed' => (int)$h['placed'],
             'distractor' => (int)$h['distractor'], 'controls' => $h['controls']];
-    }, $hazards),
+        },
+        $hazards
+    ),
     'limits' => manager::LIMITS,
     'levels' => catalogue::LEVELS,
     'rowsize' => manager::ROW_SIZE,
@@ -88,7 +97,9 @@ $data = [
 $PAGE->requires->js_call_amd('mod_aisafetyhazards/editor', 'init', ['#sh-editor']);
 [$image] = manager::get_scene_image($context, (int)$scene->id);
 echo $OUTPUT->header();
-echo $OUTPUT->render_from_template('mod_aisafetyhazards/editor', [
+echo $OUTPUT->render_from_template(
+    'mod_aisafetyhazards/editor',
+    [
     'title' => format_string($scene->title, true, ['context' => $context]),
     'bar' => \mod_aisafetyhazards\local\setuppath::bar(\mod_aisafetyhazards\local\setuppath::CHECK),
     'image' => $image,
@@ -96,5 +107,6 @@ echo $OUTPUT->render_from_template('mod_aisafetyhazards/editor', [
     'replaceurl' => (new moodle_url($backurl, ['action' => 'replace', 'sceneid' => $scene->id]))->out(false),
     'datajson' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
     'rtl' => catalogue::is_rtl((string)$instance->contentlang),
-]);
+    ]
+);
 echo $OUTPUT->footer();

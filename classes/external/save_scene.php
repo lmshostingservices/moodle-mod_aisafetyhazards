@@ -35,10 +35,12 @@ class save_scene extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'sceneid' => new external_value(PARAM_INT, 'Scene id'),
-            'data' => new external_value(PARAM_RAW, 'JSON: title, context, imageprompt, teachingnote, hazards'), // pipeline-ignore: PARAM_RAW — Output-only JSON serialization, not an input parameter.
-        ]);
+            'data' => new external_value(PARAM_TEXT, 'JSON: title, context, imageprompt, teachingnote, hazards'),
+            ]
+        );
     }
 
     /**
@@ -66,9 +68,11 @@ class save_scene extends base {
      * @return external_single_structure
      */
     public static function execute_returns(): external_single_structure {
-        return new external_single_structure([
+        return new external_single_structure(
+            [
             'saved' => new external_value(PARAM_BOOL, 'Saved'),
             'ready' => new external_value(PARAM_BOOL, 'The scene is ready to play (a picture and complete hazards)'),
-        ]);
+            ]
+        );
     }
 }

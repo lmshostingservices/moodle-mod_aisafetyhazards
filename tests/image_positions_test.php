@@ -97,8 +97,11 @@ final class image_positions_test extends \advanced_testcase {
         $this->assertSame('completed', $row->status);
         $this->assertSame(['the unsupported trench wall on the left', $truck['anchor'], $fall['anchor']], $sent[0]['anchors']);
         $after = $DB->get_records('aisafetyhazards_hazard', ['sceneid' => $scene->id], '', 'id, x, y, placed');
-        $this->assertEquals([12.5, 40, 2], [(float)$after[$wall['id']]->x, (float)$after[$wall['id']]->y,
-            (int)$after[$wall['id']]->placed]);
+        $this->assertEquals(
+            [12.5, 40, 2],
+            [(float)$after[$wall['id']]->x, (float)$after[$wall['id']]->y,
+            (int)$after[$wall['id']]->placed]
+        );
         $this->assertEquals(
             [(float)$truck['x'], 2],
             [(float)$after[$truck['id']]->x, (int)$after[$truck['id']]->placed],

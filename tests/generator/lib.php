@@ -73,18 +73,24 @@ class mod_aisafetyhazards_generator extends testing_module_generator {
         $cm = get_coursemodule_from_instance('aisafetyhazards', $instance->id, 0, false, MUST_EXIST);
         $context = context_module::instance($cm->id);
         $fixture = $this->fixture_scene();
-        $sceneid = \mod_aisafetyhazards\local\manager::add_scene($instance, [
+        $sceneid = \mod_aisafetyhazards\local\manager::add_scene(
+            $instance,
+            [
             'title' => $title,
             'context' => $fixture['context'],
             'imageprompt' => $fixture['imageprompt'],
             'teachingnote' => $fixture['teachingnote'],
-        ]);
+            ]
+        );
         $imagepath = $imagepath ?? $CFG->dirroot . '/mod/aisafetyhazards/tests/fixtures/scene.png';
         if ($imagepath !== '') {
-            get_file_storage()->create_file_from_pathname([
+            get_file_storage()->create_file_from_pathname(
+                [
                 'contextid' => $context->id, 'component' => 'mod_aisafetyhazards', 'filearea' => 'sceneimage',
                 'itemid' => $sceneid, 'filepath' => '/', 'filename' => basename($imagepath),
-            ], $imagepath);
+                ],
+                $imagepath
+            );
         }
         $scene = $DB->get_record('aisafetyhazards_scene', ['id' => $sceneid], '*', MUST_EXIST);
         \mod_aisafetyhazards\local\manager::save_scene($scene, [], $hazards ?? $fixture['hazards']);

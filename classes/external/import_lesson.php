@@ -35,10 +35,12 @@ class import_lesson extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'cmid' => new external_value(PARAM_INT, 'Course module id'),
             'draft' => new external_value(PARAM_TEXT, 'Lesson draft JSON'),
-        ]);
+            ]
+        );
     }
 
     /**

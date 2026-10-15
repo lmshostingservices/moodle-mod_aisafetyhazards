@@ -254,8 +254,10 @@ final class services_test extends \advanced_testcase {
         $sent = [];
         \mod_aisafetyhazards\local\ai\lmslabs::$posttransport = function ($url, $headers, $body) use (&$sent) {
             $sent[] = [$url, json_decode($body, true)];
-            return [200, ['content-type' => 'application/json'], json_encode(['requestId' => 'imp-1',
-                'creditsCharged' => 5, 'creditsBalance' => 47])];
+            return [200, ['content-type' => 'application/json'], json_encode(
+                ['requestId' => 'imp-1',
+                'creditsCharged' => 5, 'creditsBalance' => 47]
+            )];
         };
         $before = $DB->count_records('aisafetyhazards_scene');
         $result = $this->call('editingteacher', 'import_lesson', [(int)$this->cm->id, $draft]);
@@ -362,13 +364,17 @@ final class services_test extends \advanced_testcase {
         set_config('lmslabsapikey', 'key', 'mod_aisafetyhazards');
         $keys = [];
         $answers = [
-            [202, ['retry-after' => '5'], json_encode(['requestId' => 'r1', 'error' => ['code' => 'PENDING',
-                'message' => 'PENDING']])],
-            [200, [], json_encode(['requestId' => 'r1', 'model' => 'gpt-4o-2024-08-06', 'creditsCharged' => 5,
+            [202, ['retry-after' => '5'], json_encode(
+                ['requestId' => 'r1', 'error' => ['code' => 'PENDING',
+                'message' => 'PENDING']]
+            )],
+            [200, [], json_encode(
+                ['requestId' => 'r1', 'model' => 'gpt-4o-2024-08-06', 'creditsCharged' => 5,
                 'creditsBalance' => 97, 'draft' => ['title' => 'A clash'] + json_decode(
                     file_get_contents(__DIR__ . '/../fixtures/draft.json'),
                     true
-                )['scenes'][0]])],
+                )['scenes'][0]]
+            )],
         ];
         \mod_aisafetyhazards\local\ai\lmslabs::$posttransport = function ($url, $headers, $body) use (&$keys, &$answers) {
             $keys[] = array_values(preg_grep('/^Idempotency-Key: /', $headers))[0] . '|' . $body;

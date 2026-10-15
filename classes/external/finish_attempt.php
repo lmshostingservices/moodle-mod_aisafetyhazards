@@ -35,9 +35,11 @@ class finish_attempt extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'attemptid' => new external_value(PARAM_INT, 'Attempt id'),
-        ]);
+            ]
+        );
     }
 
     /**
@@ -59,8 +61,10 @@ class finish_attempt extends base {
      * @return external_single_structure
      */
     public static function execute_returns(): external_single_structure {
-        return new external_single_structure([
-            'data' => new external_value(PARAM_RAW, 'The results, as JSON'), // pipeline-ignore: PARAM_RAW — Output-only JSON serialization, not an input parameter.
-        ]);
+        return new external_single_structure(
+            [
+            'data' => new external_value(PARAM_TEXT, 'The results, as JSON'),
+            ]
+        );
     }
 }

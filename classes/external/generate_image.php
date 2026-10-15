@@ -34,9 +34,11 @@ class generate_image extends base {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
+        return new external_function_parameters(
+            [
             'sceneid' => new external_value(PARAM_INT, 'Scene id'),
-        ]);
+            ]
+        );
     }
 
     /**

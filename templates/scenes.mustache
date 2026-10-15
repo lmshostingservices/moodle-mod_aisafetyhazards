@@ -51,7 +51,7 @@
             <span>{{#str}} genall_button, mod_aisafetyhazards, { "count": {{missingcount}}, "credits": {{missingcredits}} } {{/str}}</span>
         </button>
         {{/missingcount}}
-        {{^missingcount}}<p class="sh-ok mb-0">{{#str}} pictures_alldone, mod_aisafetyhazards {{/str}}</p>{{/missingcount}}
+        {{#allpictures}}<p class="sh-ok mb-0">{{#str}} pictures_alldone, mod_aisafetyhazards {{/str}}</p>{{/allpictures}}
         {{/canai}}
         {{#aioff}}<p class="sh-note mb-0">{{#str}} pictures_notconnected, mod_aisafetyhazards {{/str}}</p>{{/aioff}}
         {{> mod_aisafetyhazards/aireq_list}}
@@ -109,12 +109,13 @@
                 <div class="sh-slidecard-meta {{#noimage}}is-warn{{/noimage}}">
                     {{#noimage}}{{#str}} sceneneedsimage, mod_aisafetyhazards {{/str}}{{/noimage}}{{^noimage}}{{#str}} scenehasimage, mod_aisafetyhazards {{/str}}{{/noimage}}
                 </div>
-                {{#canai}}
+                {{#waiting}}<p class="sh-note sh-mini mb-2" role="status">{{#str}} picture_waiting, mod_aisafetyhazards {{/str}}</p>{{/waiting}}
+                {{^waiting}}{{#canai}}
                 <button type="button" class="sh-btn {{#noimage}}sh-btn-primary{{/noimage}}{{^noimage}}sh-btn-ghost{{/noimage}} sh-btn-sm w-100" data-action="genimage" data-scene="{{id}}" data-replace="{{^noimage}}1{{/noimage}}">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
                     <span>{{#noimage}}{{#str}} generateimage, mod_aisafetyhazards, {{imagecredits}} {{/str}}{{/noimage}}{{^noimage}}{{#str}} regenerateimage, mod_aisafetyhazards, {{imagecredits}} {{/str}}{{/noimage}}</span>
                 </button>
-                {{/canai}}
+                {{/canai}}{{/waiting}}
                 <a class="sh-btn sh-btn-ghost sh-btn-sm w-100 mt-2" href="{{replaceurl}}">{{#str}} uploadownimage, mod_aisafetyhazards {{/str}}</a>
                 {{^noimage}}
                 <div class="sh-slidecard-meta mt-2 {{#autospots}}is-warn{{/autospots}}">{{#autospots}}{{#str}} spots_auto, mod_aisafetyhazards, {{autospots}} {{/str}}{{/autospots}}{{^autospots}}{{#str}} spots_placed, mod_aisafetyhazards {{/str}}{{/autospots}}</div>

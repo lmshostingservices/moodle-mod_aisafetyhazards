@@ -41,8 +41,10 @@ final class completion_test extends \advanced_testcase {
         $course = $gen->create_course(['enablecompletion' => 1]);
         $student = $gen->create_and_enrol($course, 'student');
         $sh = $gen->get_plugin_generator('mod_aisafetyhazards');
-        $instance = $sh->create_instance(['course' => $course->id, 'completion' => COMPLETION_TRACKING_AUTOMATIC,
-            'completionallscenes' => 1]);
+        $instance = $sh->create_instance(
+            ['course' => $course->id, 'completion' => COMPLETION_TRACKING_AUTOMATIC,
+            'completionallscenes' => 1]
+        );
         $scene = $sh->create_scene($instance, 'A');
         $cm = get_fast_modinfo($course)->get_cm(get_coursemodule_from_instance('aisafetyhazards', $instance->id)->id);
         $context = \context_module::instance($cm->id);
@@ -78,8 +80,10 @@ final class completion_test extends \advanced_testcase {
         $course = $gen->create_course(['enablecompletion' => 1]);
         $student = $gen->create_and_enrol($course, 'student');
         $sh = $gen->get_plugin_generator('mod_aisafetyhazards');
-        $instance = $sh->create_instance(['course' => $course->id, 'completion' => COMPLETION_TRACKING_AUTOMATIC,
-            'completionpasstest' => 1, 'practicemode' => 1, 'testmode' => 1, 'passmark' => 100]);
+        $instance = $sh->create_instance(
+            ['course' => $course->id, 'completion' => COMPLETION_TRACKING_AUTOMATIC,
+            'completionpasstest' => 1, 'practicemode' => 1, 'testmode' => 1, 'passmark' => 100]
+        );
         $scene = $sh->create_scene($instance, 'A');
         $cm = get_fast_modinfo($course)->get_cm(get_coursemodule_from_instance('aisafetyhazards', $instance->id)->id);
         $context = \context_module::instance($cm->id);
@@ -91,8 +95,12 @@ final class completion_test extends \advanced_testcase {
             if (!$perfect) {
                 // A distractor on the first spot.
                 $attempt = $DB->get_record('aisafetyhazards_attempt', ['id' => $data['attemptid']]);
-                $distractor = (int)$DB->get_field('aisafetyhazards_hazard', 'id', ['sceneid' => $scene->id, 'distractor' => 1,
-                    'sortorder' => 4]);
+                $distractor = (int)$DB->get_field(
+                    'aisafetyhazards_hazard',
+                    'id',
+                    ['sceneid' => $scene->id, 'distractor' => 1,
+                    'sortorder' => 4]
+                );
                 learning::drop(
                     $instance,
                     $context,

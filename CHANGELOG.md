@@ -2,6 +2,12 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.11] - 2026-10-16
+
+### Changed
+
+- The step cards under the picture no longer have a coloured line along the top. Each card keeps its thin, light outline in the step's colour.
+
 ## [v1.0.10] - 2026-10-16
 
 ### Changed

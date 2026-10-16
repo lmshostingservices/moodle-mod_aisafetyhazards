@@ -2,6 +2,13 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.10] - 2026-10-16
+
+### Changed
+
+- On screens with room, the risk has its own card under the hazard card, in the same style. It shows the gauges and the matrix in large, plus the risk rating, and is sized to the space beside the picture. On short screens the risk stays in the footer.
+- Feedback shows under the answers whenever the hazard card has room for it. It moves over the step cards only when it would otherwise make the answers scroll.
+
 ## [v1.0.9] - 2026-10-16
 
 ### Changed

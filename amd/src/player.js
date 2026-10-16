@@ -58,7 +58,7 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'hint_ppe_test', 'hint_study', 'intro_close', 'intro_lead', 'intro_then', 'card_now', 'card_skip', 'step_n',
     'found_of', 'praise_1', 'praise_2', 'praise_3', 'praise_4', 'praise_5', 'streak', 'pop_great', 'pop_cut',
     'pop_saved', 'pop_learned', 'scene_pop', 'scene_pop_cut', 'stars_label', 'hazards',
-    'hazards_done', 'hazard_here', 'steps_label', 'fb_saved', 'more', 'less', 'close', 'test_gauges_short',
+    'hazards_done', 'hazard_here', 'steps_label', 'fb_saved', 'more', 'less', 'close', 'test_gauges_short', 'risk_title',
     ...['study', 'practice', 'test'].flatMap((m) => ['intro_title_' + m, 'intro_note_' + m]),
     ...ROWS.flatMap((r) => ['q_' + r, 'card_q_' + r, 'intro_step_' + r]),
     ...LIKELIHOOD.map((k) => 'l_' + k), ...CONSEQUENCE.map((k) => 'c_' + k), ...LEVELS.map((k) => 'level_' + k)];
@@ -91,10 +91,14 @@ const SIDE_MAX = 560;
 const STACK = 760;
 /** Below this screen height the step cards and the scene description are compact. */
 const SHORT = 740;
-/** Below this row height the feedback shows over the step cards instead of under the answers. */
-const FB_SIDE = 540;
 /** Below this row height the answers and a done hazard's summary are compact. */
 const TIGHT = 420;
+/** From this row height the risk has its own card beside the picture (its height: 30% of the row, 130 to 200px). */
+const RISK_SIDE = 520;
+const RISK_MIN = 130;
+const RISK_MAX = 200;
+/** The space between the hazard card and the risk card. */
+const SIDE_GAP = 12;
 /** The footer's height on one line. */
 const FOOT_H = 64;
 /** How long feedback over the step cards stays (paused while the pointer is on it). */
@@ -399,7 +403,8 @@ class Player {
             ['max-height', 'height', 'min-width'].forEach((p) => side.style.removeProperty(p));
             this.host.style.removeProperty('margin-bottom');
             this.cards.classList.toggle('is-narrow', this.cards.firstChild.getBoundingClientRect().width < 175);
-            this.dock(false);
+            this.placeFeedback();
+            this.placeRisk(false);
             return;
         }
         const shellnode = this.host.querySelector('.sh-shell');
@@ -414,13 +419,21 @@ class Player {
         const sidemin = this.sideMin || SIDE_MIN;
         side.style.minWidth = sidemin + 'px';
         let row = 0;
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
             const shell = shellnode.getBoundingClientRect();
             const m = main.getBoundingClientRect();
             const above = m.top - shell.top;
             const below = foot.getBoundingClientRect().bottom - m.bottom + parseFloat(cs.paddingBottom)
                 + parseFloat(cs.borderBottomWidth);
             row = Math.max(PIC_MIN + 100, Math.floor(window.innerHeight - top - bottom - above - below));
+            // A tall row: the risk gets its own card under the hazard card, sized to the row; otherwise it sits in
+            // the footer. Moving it changes the footer, so the row is measured again.
+            if (this.placeRisk(row >= RISK_SIDE)) {
+                continue;
+            }
+            const riskh = this.riskSide ? Math.round(Math.min(RISK_MAX, Math.max(RISK_MIN, row * 0.3))) : 0;
+            side.style.setProperty('--sh-riskh', riskh + 'px');
+            this.boxH = row - (riskh ? riskh + SIDE_GAP : 0);
             const tcs = getComputedStyle(this.track);
             const track = this.track.getBoundingClientRect().height + parseFloat(tcs.marginTop)
                 + parseFloat(tcs.marginBottom);
@@ -437,9 +450,9 @@ class Player {
             // The side panel always takes the whole row, so the slide keeps one height from answer to answer (the
             // page never jumps); a long list of answers scrolls inside it.
             side.style.height = row + 'px';
-            this.rowH = row;
+            this.rowH = this.boxH;
             // A low row: the answers and a done hazard's steps take the compact form.
-            play.classList.toggle('is-tight', row < TIGHT);
+            play.classList.toggle('is-tight', this.boxH < TIGHT);
             side.style.maxHeight = row + 'px';
             if (play.style.maxWidth === was && Math.abs(main.getBoundingClientRect().top - m.top) < 1) {
                 break;
@@ -448,12 +461,32 @@ class Player {
         if (!full) {
             this.roomBelow();
         }
-        this.dock(row < FB_SIDE);
+        this.placeFeedback();
         this.cards.classList.toggle('is-narrow', this.cards.firstChild.getBoundingClientRect().width < 175);
         // The footer on one line: on a narrow slide the gauges give way to the matrix and the rating.
         foot.classList.remove('is-tight');
         foot.classList.toggle('is-tight', foot.scrollWidth > foot.clientWidth + 1
             || foot.getBoundingClientRect().height > FOOT_H + 1);
+    }
+
+    /**
+     * Puts the risk (gauges, matrix, rating) in its own card under the hazard card, or in the footer.
+     *
+     * @param {boolean} inside
+     * @returns {boolean} whether it moved
+     */
+    placeRisk(inside) {
+        if (this.riskSide === inside && this.riskpanel.isConnected) {
+            return false;
+        }
+        this.riskSide = inside;
+        this.riskpanel.classList.toggle('is-card', inside);
+        if (inside) {
+            this.box.parentNode.appendChild(this.riskpanel);
+        } else {
+            this.progress.after(this.riskpanel);
+        }
+        return true;
     }
 
     /**
@@ -478,8 +511,24 @@ class Player {
     }
 
     /**
-     * Where the feedback shows: under the answers when the side panel has room, otherwise over the step cards under
-     * the picture (it then closes by itself after a while, or with ×), so the answers never need scrolling.
+     * Where the feedback shows: under the answers when the hazard card has room for it, otherwise over the step cards
+     * under the picture, where it closes by itself after a while (or with ×), so the answers never need scrolling.
+     */
+    placeFeedback() {
+        const stacked = !!this.stage.querySelector('.sh-play.is-stacked');
+        this.dock(false);
+        if (stacked || !this.feedback.children.length || this.box.classList.contains('is-finished')) {
+            return;
+        }
+        // Docked if, under the answers, it would make the answers (or the box itself) scroll.
+        const over = (n) => n && !n.hidden && n.scrollHeight > n.clientHeight + 1;
+        if (over(this.box) || over(this.opts)) {
+            this.dock(true);
+        }
+    }
+
+    /**
+     * Moves the feedback under the answers or over the step cards.
      *
      * @param {boolean} docked
      */
@@ -489,8 +538,15 @@ class Player {
         }
         this.fbDocked = docked;
         this.feedback.classList.toggle('is-docked', docked);
+        clearTimeout(this.fbTimer);
+        this.feedback.querySelectorAll('.sh-fb-close').forEach((n) => n.remove());
         if (docked) {
             this.track.parentNode.appendChild(this.feedback);
+            const first = this.feedback.firstElementChild;
+            if (first) {
+                first.appendChild(iconButton('sh-fb-close', S.close, 'cross', () => this.hideFeedback()));
+                this.fbTimer = setTimeout(() => this.hideFeedback(), FB_TIME);
+            }
         } else {
             this.box.insertBefore(this.feedback, this.hNext);
         }
@@ -505,12 +561,8 @@ class Player {
         clearTimeout(this.fbTimer);
         this.feedback.classList.remove('is-out');
         this.feedback.replaceChildren(...nodes);
-        if (!this.fbDocked || !nodes.length) {
-            return;
-        }
-        const close = iconButton('sh-fb-close', S.close, 'cross', () => this.hideFeedback());
-        nodes[0].appendChild(close);
-        this.fbTimer = setTimeout(() => this.hideFeedback(), FB_TIME);
+        this.fbDocked = null;
+        this.placeFeedback();
     }
 
     /**
@@ -852,7 +904,8 @@ class Player {
         this.gC = gauge(S.consequence, CONSEQUENCE.map((k) => S['c_' + k]));
         gauges.append(this.gL.node, this.gC.node);
         this.matrix = this.buildMatrix();
-        risk.append(gauges, this.matrix);
+        this.riskTitle = el('span', 'sh-riskpanel-title');
+        risk.append(this.riskTitle, gauges, this.matrix);
         this.ratingNode = el('div', 'sh-riskrow');
         risk.appendChild(this.ratingNode);
         this.safety = this.bar(S.safetybar, S.safetybar_help, 'safety');
@@ -1153,6 +1206,7 @@ class Player {
             tab.addEventListener('click', () => this.focusHazard(s));
             return tab;
         }));
+        this.riskTitle.textContent = h ? fmt(S.risk_title, h.number) : '';
         this.showRisk(h, false);
         // Safety bar: the share of the starting risk removed so far in this scene (Practice and Study).
         this.safety.node.hidden = this.mode === 'test';

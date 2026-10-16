@@ -734,6 +734,7 @@ $string['review_distractor'] = 'not in the picture';
 $string['review_help'] = 'Untick any scene you don\'t want. You can edit every scene afterwards, and add its picture in the next step.';
 $string['review_title'] = 'Draft: {$a} scenes';
 $string['right'] = 'Right';
+$string['risk_title'] = 'Risk of hazard {$a}';
 $string['riskrating'] = 'Risk rating';
 $string['row_eliminate'] = 'Eliminate';
 $string['row_hazard'] = 'Hazard';

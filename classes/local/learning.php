@@ -350,11 +350,13 @@ class learning {
                     $state['done'][$kind] = true;
                 }
             }
-            if ($state['eliminated'] || !$h['controls']['reduce']) {
-                // Nothing left to control (or, in a test, nothing more to choose for a hazard that could have been
-                // eliminated: its other rows are empty).
-                $state['done']['reduce'] = true;
-                $state['done']['ppe'] = true;
+            // Every hazard goes through all its rows, even once eliminated: the company may not approve removing it,
+            // so the learner still chooses the controls and PPE that keep people safe. Only a row with no labels
+            // (older content made before this rule) has nothing to do.
+            foreach (['reduce', 'ppe'] as $kind) {
+                if (!$h['controls'][$kind]) {
+                    $state['done'][$kind] = true;
+                }
             }
             $state['complete'] = $state['found'] && !in_array(false, $state['done'], true);
             $all = $all && $state['complete'];
@@ -545,10 +547,9 @@ class learning {
                 if ($kind === 'eliminate' && !empty($c['eliminates'])) {
                     $eliminated = true;
                 }
-                if (!$eliminated || $kind === 'eliminate') {
-                    $l -= (int)$c['dl'];
-                    $q -= (int)$c['dc'];
-                }
+                // The other controls count too: they are what keeps people safe if the elimination is not approved.
+                $l -= (int)$c['dl'];
+                $q -= (int)$c['dc'];
             }
         }
         return ['likelihood' => max(1, $l), 'consequence' => max(1, $q), 'eliminated' => $eliminated];
@@ -696,7 +697,9 @@ class learning {
             self::choices((int)$attempt->id)[$sceneid] ?? [],
             true
         )[$hazardid];
-        if (!$state['found'] || !$state['done']['eliminate'] || $state['done'][$kind]) {
+        // Rows end in order: eliminate, then reduce, then PPE.
+        $earlier = array_intersect_key($state['done'], array_flip(array_slice(catalogue::KINDS, 0, $index)));
+        if (!$state['found'] || $state['done'][$kind] || in_array(false, $earlier, true)) {
             throw new moodle_exception('rowsinorder', 'mod_aisafetyhazards');
         }
         $DB->insert_record(
@@ -832,16 +835,13 @@ class learning {
                 $h = $hazards[$hid];
                 $p = $progress[$hid];
                 $best = self::best_case($h);
-                // Needed: find it, its right elimination, and (unless it can be eliminated) every right control.
-                $need = 2;
-                if (!$best['eliminated']) {
-                    $need += count(
-                        array_filter(
-                            array_merge($h['controls']['reduce'], $h['controls']['ppe']),
-                            fn($c) => !empty($c['correct'])
-                        )
-                    );
-                }
+                // Needed: find it, its right elimination, and every right control and PPE.
+                $need = 2 + count(
+                    array_filter(
+                        array_merge($h['controls']['reduce'], $h['controls']['ppe']),
+                        fn($c) => !empty($c['correct'])
+                    )
+                );
                 $start = (int)$h['likelihood'] * (int)$h['consequence'];
                 $end = $p['eliminated'] ? 0 : $p['likelihood'] * $p['consequence'];
                 $bestend = $best['eliminated'] ? 0 : $best['likelihood'] * $best['consequence'];
@@ -973,7 +973,6 @@ class learning {
                         $picked = isset($chosen[(int)$c['id']]);
                         if (
                             !empty($c['correct']) && !$picked && $mode !== self::MODE_STUDY
-                                && !($m['best']['eliminated'] && $kind !== 'eliminate')
                         ) {
                             $missed[] = ['text' => self::line($c['text'], $context), 'reason' => self::para($c['reason'], $context),
                                 'kind' => $kind];

@@ -64,7 +64,8 @@ export const init = async(selector) => {
     const data = JSON.parse(root.dataset.scene);
     const S = await loadStrings(['ed_scene', 'ed_title', 'ed_context', 'ed_imageprompt', 'ed_teachingnote', 'ed_hazard',
         'ed_hazardname', 'ed_anchor', 'ed_anchor_help', 'ed_why', 'ed_likelihood', 'ed_consequence', 'ed_startrisk',
-        'ed_row_eliminate', 'ed_row_reduce', 'ed_row_ppe', 'ed_rowhelp_eliminate', 'ed_rowhelp_reduce', 'ed_rowhelp_ppe',
+        'ed_row_eliminate', 'ed_row_reduce', 'ed_row_ppe', 'ed_row_empty',
+        'ed_rowhelp_eliminate', 'ed_rowhelp_reduce', 'ed_rowhelp_ppe',
         'ed_label', 'ed_right', 'ed_removes', 'ed_level', 'ed_dl', 'ed_dc', 'ed_reason', 'ed_addlabel', 'ed_removelabel',
         'ed_distractors', 'ed_distractors_help', 'ed_adddistractor', 'ed_saved', 'ed_saving', 'ed_notready',
         'ed_spot', 'ed_spot_auto', 'ed_after', 'ed_eliminated', 'ed_charcount',
@@ -307,7 +308,11 @@ export const init = async(selector) => {
             box.appendChild(rowtitle);
             box.appendChild(el('p', 'sh-mini', {text: S['ed_rowhelp_' + kind]}));
             const list = el('div', 'sh-ed-ctls');
+            // An empty Reduce or PPE row (older content): learners need it even when the hazard can be eliminated.
+            const empty = el('p', 'sh-mini sh-ed-warn', {text: S.ed_row_empty, hidden: true});
+            box.appendChild(empty);
             const redraw = () => {
+                empty.hidden = kind === 'eliminate' || (h.controls[kind] || []).length > 0;
                 list.replaceChildren(...(h.controls[kind] || []).map((c) => labelRow(h, kind, c, redraw)));
                 add.disabled = (h.controls[kind] || []).length >= data.rowsize[1];
                 syncRisk();

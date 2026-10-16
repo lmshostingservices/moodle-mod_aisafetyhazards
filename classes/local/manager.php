@@ -266,8 +266,9 @@ class manager {
 
     /**
      * Whether a scene's hazards are complete: exactly three hazards in the picture with a name, at most two
-     * distractors, and for each hazard an eliminate row with exactly one right answer; unless that answer removes the
-     * hazard, a reduce row and a PPE row each with at least one right answer. Rows have 2 to 5 labels.
+     * distractors, and for each hazard an eliminate row with exactly one right answer, a reduce row and a PPE row each
+     * with at least one right answer (older content: a hazard its right answer removes may have neither). Rows have 2 to
+     * 5 labels.
      *
      * @param array $hazards from {@see self::scene_hazards()} or a cleaned draft
      * @return bool
@@ -290,11 +291,13 @@ class manager {
             if (!self::row_ok($elim) || count($right) !== 1) {
                 return false;
             }
-            if (!empty($right[0]['eliminates'])) {
-                continue;
-            }
             foreach (['reduce', 'ppe'] as $kind) {
                 $row = array_values((array)($rows[$kind] ?? []));
+                if (!$row && !empty($right[0]['eliminates'])) {
+                    // Older content: a hazard that can be eliminated may have no reduce or PPE row (the player then
+                    // skips it). New drafts and imports have both rows for every hazard.
+                    continue;
+                }
                 $count = count(array_filter($row, fn($c) => !empty($c['correct'])));
                 if (!self::row_ok($row) || $count < 1 || $count > self::MAX_CORRECT) {
                     return false;

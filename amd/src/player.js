@@ -59,6 +59,7 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'found_of', 'praise_1', 'praise_2', 'praise_3', 'praise_4', 'praise_5', 'streak', 'pop_great', 'pop_cut',
     'pop_saved', 'pop_learned', 'scene_pop', 'scene_pop_cut', 'stars_label', 'hazards',
     'hazards_done', 'hazard_here', 'steps_label', 'fb_saved', 'more', 'less', 'close', 'test_gauges_short', 'risk_title',
+    'risk_title_ifnot', 'risk_ifnot', 'q_reduce_backup', 'q_ppe_backup',
     ...['study', 'practice', 'test'].flatMap((m) => ['intro_title_' + m, 'intro_note_' + m]),
     ...ROWS.flatMap((r) => ['q_' + r, 'card_q_' + r, 'intro_step_' + r]),
     ...LIKELIHOOD.map((k) => 'l_' + k), ...CONSEQUENCE.map((k) => 'c_' + k), ...LEVELS.map((k) => 'level_' + k)];
@@ -1130,6 +1131,19 @@ class Player {
     }
 
     /**
+     * Whether a hazard has been eliminated so far (Practice and Study; a test does not tell).
+     *
+     * @param {object} h
+     * @returns {boolean}
+     */
+    isEliminated(h) {
+        if (this.mode === 'study') {
+            return !!this.studyRisk(h).eliminated;
+        }
+        return this.mode !== 'test' && !!(h.now && Number(h.now.eliminated));
+    }
+
+    /**
      * The instruction for a step.
      *
      * @param {string} r
@@ -1206,7 +1220,7 @@ class Player {
             tab.addEventListener('click', () => this.focusHazard(s));
             return tab;
         }));
-        this.riskTitle.textContent = h ? fmt(S.risk_title, h.number) : '';
+        this.riskTitle.textContent = h ? fmt(this.isEliminated(h) ? S.risk_title_ifnot : S.risk_title, h.number) : '';
         this.showRisk(h, false);
         // Safety bar: the share of the starting risk removed so far in this scene (Practice and Study).
         this.safety.node.hidden = this.mode === 'test';
@@ -1316,19 +1330,7 @@ class Player {
         if (!on) {
             return;
         }
-        const n = ROWS.indexOf(row) + 1;
-        const key = h.id + ':' + row;
-        const changed = this.qkey !== key;
-        this.qkey = key;
-        this.q.className = 'sh-question sh-question-' + row;
-        if (changed && !REDUCED) {
-            void this.q.offsetWidth;
-            this.q.classList.add('is-new');
-        }
-        this.opts.classList.toggle('is-new', changed);
-        const step = el('span', 'sh-question-step');
-        step.append(icon(row), el('span', '', {text: fmt(S.step_n, n)}));
-        this.q.replaceChildren(step, el('span', 'sh-question-text', {text: fmt(S['q_' + row], h.number)}));
+        this.drawAsk(h, row);
         // The tip, and in Practice how many right answers are found so far, as dots.
         this.qs.replaceChildren(el('span', 'sh-question-tip', {text: this.hint(row, h)}));
         if (this.mode === 'practice' && (row === 'reduce' || row === 'ppe')) {
@@ -1351,6 +1353,31 @@ class Player {
             // A low panel: the button says what to do, so the tip line makes room for the answers.
             this.qs.hidden = (this.rowH || 999) < TIGHT;
         }
+    }
+
+    /**
+     * The question box: the step's colour, "Step n" and the question (it pops in when the step changes).
+     *
+     * @param {object} h
+     * @param {string} row
+     */
+    drawAsk(h, row) {
+        const n = ROWS.indexOf(row) + 1;
+        const key = h.id + ':' + row;
+        const changed = this.qkey !== key;
+        this.qkey = key;
+        this.q.className = 'sh-question sh-question-' + row;
+        if (changed && !REDUCED) {
+            void this.q.offsetWidth;
+            this.q.classList.add('is-new');
+        }
+        this.opts.classList.toggle('is-new', changed);
+        const step = el('span', 'sh-question-step');
+        step.append(icon(row), el('span', '', {text: fmt(S.step_n, n)}));
+        // After an elimination, Reduce and PPE are what keeps people safe if it is not approved.
+        const backup = (row === 'reduce' || row === 'ppe') && this.isEliminated(h);
+        this.q.replaceChildren(step, el('span', 'sh-question-text', {text: fmt(S['q_' + row + (backup ? '_backup' : '')],
+            h.number)}));
     }
 
     /**
@@ -1451,8 +1478,8 @@ class Player {
             return KINDS.indexOf(r) < KINDS.indexOf(row) ? 'done' : 'wait';
         }
         if (Number(h.done[r])) {
-            const any = (h.rows[r] || []).some((c) => Number(c.chosen));
-            return r !== 'eliminate' && !any && h.now && h.now.eliminated ? 'skip' : 'done';
+            // Only a row with no labels (older content) is skipped; every other row is played, even once eliminated.
+            return (h.rows[r] || []).length ? 'done' : 'skip';
         }
         return !viewing && row === r ? 'now' : 'wait';
     }
@@ -1854,14 +1881,23 @@ class Player {
         if (this.mode === 'study' && this.studyHazard === this.scene.spots.indexOf(h)) {
             Object.assign(now, this.studyRisk(h));
         }
-        const l = now.eliminated ? 1 : now.likelihood;
-        const c = now.eliminated ? 1 : now.consequence;
+        // Eliminated: the gauges and the matrix show the risk if the elimination is not approved, so the controls and
+        // PPE still chosen keep lowering it.
+        const l = now.likelihood;
+        const c = now.consequence;
         this.gL.set(l, animate && before && before.likelihood !== l);
         this.gC.set(c, animate && before && before.consequence !== c);
-        const rate = now.eliminated ? 'eliminated' : rating(now.likelihood, now.consequence);
+        const rate = rating(now.likelihood, now.consequence);
         const start = rating(h.likelihood, h.consequence);
-        this.ratingNode.replaceChildren(el('span', 'sh-mini', {text: S.riskrating}),
-            el('span', 'sh-rating sh-rating-' + start + (rate !== start ? ' is-was' : ''), {text: S['rating_' + start]}));
+        this.ratingNode.replaceChildren();
+        if (now.eliminated) {
+            this.ratingNode.append(el('span', 'sh-rating sh-rating-eliminated', {text: S.rating_eliminated}),
+                el('span', 'sh-mini sh-ifnot', {text: S.risk_ifnot}));
+        } else {
+            this.ratingNode.appendChild(el('span', 'sh-mini', {text: S.riskrating}));
+        }
+        this.ratingNode.appendChild(el('span', 'sh-rating sh-rating-' + start + (rate !== start ? ' is-was' : ''),
+            {text: S['rating_' + start]}));
         if (rate !== start) {
             this.ratingNode.append(icon('next'), el('span', 'sh-rating sh-rating-' + rate, {text: S['rating_' + rate]}));
         }
@@ -2141,9 +2177,6 @@ class Player {
                 if (c.correct) {
                     steps.push({...c, kind: k});
                 }
-            }
-            if (k === 'eliminate' && steps.some((c) => Number(c.eliminates))) {
-                break;
             }
         }
         return steps;

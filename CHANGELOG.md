@@ -2,6 +2,24 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.13] - 2026-10-16
+
+### Fixed
+
+- In a test, "Done with this row" for PPE was accepted before the Reduce row was finished, if the request was sent directly. It now follows the same order as the labels: eliminate, then reduce, then PPE. The player never offered this.
+
+## [v1.0.12] - 2026-10-16
+
+### Changed
+
+- Every hazard goes through all four steps (name it, eliminate, reduce, PPE), even when the right Eliminate answer removes it. The company may not approve the elimination, so learners still choose the controls and PPE that keep people safe.
+  - After an elimination, the questions read "If the elimination is not approved, how can the risk be lowered?" and "… what PPE is needed?".
+  - The risk card shows "Eliminated", and below it the risk if the elimination is not approved, which the right controls and PPE keep lowering.
+  - Scores and results count the Reduce and PPE answers of eliminated hazards too.
+- The AI assistant prompt now asks for full Reduce and PPE rows for every hazard.
+- The scene editor warns when an eliminated hazard has no Reduce or PPE answers.
+  - Older scenes without them still play: those steps show "Nothing to choose".
+
 ## [v1.0.11] - 2026-10-16
 
 ### Changed

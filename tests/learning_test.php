@@ -248,6 +248,46 @@ final class learning_test extends \advanced_testcase {
     }
 
     /**
+     * An eliminated hazard still goes through Reduce and PPE (the company may not approve the elimination): the
+     * rows are played in order, their right labels lower the risk if not approved, and only then is it complete.
+     */
+    public function test_eliminated_hazard_plays_every_row(): void {
+        global $DB;
+        $this->resetAfterTest();
+        [, , $context, $instance, $student, $scenes] = $this->setup_activity();
+        $sceneid = (int)$scenes[0]->id;
+        [, $truck] = $this->hazards($sceneid);
+        $hid = (int)$truck['id'];
+        $rows = [
+            ['reduce', 'Use a spotter when the truck reverses', 1, 'administrative', 2, 0],
+            ['reduce', 'Ask the driver to go faster', 0, 'administrative', 0, 0],
+            ['ppe', 'High-visibility vest', 1, 'ppe', 1, 0],
+            ['ppe', 'Ear plugs', 0, 'ppe', 0, 0],
+        ];
+        foreach ($rows as $n => [$kind, $text, $correct, $level, $dl, $dc]) {
+            $DB->insert_record('aisafetyhazards_control', (object)['hazardid' => $hid, 'sortorder' => 10 + $n,
+                'kind' => $kind, 'text' => $text, 'correct' => $correct, 'eliminates' => 0, 'level' => $level,
+                'dl' => $dl, 'dc' => $dc, 'reason' => 'Because.']);
+        }
+        [, $truck] = $this->hazards($sceneid);
+        $data = learning::start_attempt($instance, $context, (int)$student->id, 'practice');
+        $attempt = $DB->get_record('aisafetyhazards_attempt', ['id' => $data['attemptid']]);
+        learning::drop($instance, $context, $attempt, $sceneid, 'hazard', $hid, $hid);
+        $r = learning::drop($instance, $context, $attempt, $sceneid, 'eliminate', $hid, $this->control($truck, 'eliminate'));
+        $this->assertSame([1, 'eliminated', 0, 0], [$r['eliminates'], $r['now']['rating'], $r['complete'],
+            $r['done']['reduce']], 'Eliminated, but Reduce and PPE are still to do.');
+        $ppe = $this->control($truck, 'ppe');
+        $this->expect_error('rowsinorder', fn() => learning::drop($instance, $context, $attempt, $sceneid, 'ppe', $hid, $ppe));
+        $before = $r['now']['likelihood'];
+        $r = learning::drop($instance, $context, $attempt, $sceneid, 'reduce', $hid, $this->control($truck, 'reduce'));
+        $this->assertSame([1, 1, 0], [$r['correct'], $r['done']['reduce'], $r['complete']]);
+        $this->assertSame(max(1, $before - 2), $r['now']['likelihood'], 'Lowered in case the elimination is not approved.');
+        $this->assertSame(1, $r['now']['eliminated']);
+        $r = learning::drop($instance, $context, $attempt, $sceneid, 'ppe', $hid, $this->control($truck, 'ppe'));
+        $this->assertSame([1, 1, 1], [$r['correct'], $r['done']['ppe'], $r['complete']]);
+    }
+
+    /**
      * Test: nothing is marked while playing; any label on a spot lets the learner go on, and is marked at the end.
      */
     public function test_test_mode(): void {

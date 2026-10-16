@@ -4217,3 +4217,13 @@
     }
     /* stylelint-enable declaration-no-important */
 }
+
+.path-mod-aisafetyhazards .sh-ed-warn {
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid rgba(220, 104, 3, .35);
+    border-radius: 10px;
+    background: var(--sh-warning-soft);
+    color: var(--sh-warning);
+    font-weight: 600;
+}

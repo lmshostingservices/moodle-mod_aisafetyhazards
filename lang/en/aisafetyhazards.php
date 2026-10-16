@@ -249,7 +249,7 @@ $string['card_q_eliminate'] = 'Remove it?';
 $string['card_q_hazard'] = 'Which hazard?';
 $string['card_q_ppe'] = 'What to wear?';
 $string['card_q_reduce'] = 'Lower the risk';
-$string['card_skip'] = 'Not needed';
+$string['card_skip'] = 'Nothing to choose';
 $string['check_intro'] = 'Open each scene and check its three hazards, where each one is on the picture, and every label: which are right, how much each right control lowers the likelihood and the consequence, and the reasons.';
 $string['check_title'] = 'Check each scene';
 $string['close'] = 'Close';
@@ -328,11 +328,12 @@ $string['ed_removelabel'] = 'Remove this label';
 $string['ed_removes'] = 'Removes the hazard';
 $string['ed_right'] = 'Right answer';
 $string['ed_row_eliminate'] = 'Eliminate';
+$string['ed_row_empty'] = 'No answers yet. Add them: learners choose these even when the hazard can be eliminated, in case the elimination is not approved.';
 $string['ed_row_ppe'] = 'PPE required';
 $string['ed_row_reduce'] = 'Reduce the risk';
 $string['ed_rowhelp_eliminate'] = 'Exactly one right answer: a way to remove the hazard (tick "Removes the hazard"), or why it cannot reasonably be eliminated.';
-$string['ed_rowhelp_ppe'] = 'One to three right items of PPE, each with what it lowers, plus wrong ones.';
-$string['ed_rowhelp_reduce'] = 'One to three right controls, each with what it lowers, plus wrong ones that look plausible.';
+$string['ed_rowhelp_ppe'] = 'One to three right items of PPE, each with what it lowers, plus wrong ones. Needed even when the hazard can be eliminated.';
+$string['ed_rowhelp_reduce'] = 'One to three right controls, each with what it lowers, plus wrong ones that look plausible. Needed even when the hazard can be eliminated, in case the elimination is not approved.';
 $string['ed_saved'] = 'Scene saved.';
 $string['ed_saving'] = 'Saving…';
 $string['ed_scene'] = 'The scene';
@@ -524,7 +525,7 @@ For every label give:
 - lowersLikelihood and lowersConsequence (right labels only): how many steps, 0 to 4, it lowers the likelihood and the consequence. Think about what each control really does: a control that stops the event happening lowers the likelihood (trench shoring stops the wall collapsing); a control that makes the harm less severe if it does happen lowers the consequence (a ladder for escape, a hard hat). Some lower both. PPE often lowers the consequence, but not always (hi-vis lowers the likelihood of being struck). A right label lowers at least one of them. The wrong labels lower nothing.
 - reason: at most 200 characters, why it is right (and what it lowers), or why it is wrong
 
-If a hazard\'s right elimination removes it ("eliminates": true), its reduce and ppe rows may be empty.
+Every hazard has full reduce and ppe rows, even when its right elimination removes it ("eliminates": true): the company may not approve the elimination, so learners still choose the controls and PPE that keep people safe until it is done.
 
 For every scene also give:
 - title: at most 80 characters
@@ -688,7 +689,9 @@ $string['q_industry_help'] = 'Every scene is set in this industry.';
 $string['q_language'] = 'Which language should the scenes be written in?';
 $string['q_language_help'] = 'Every scene, hazard, label and reason is written in this language.';
 $string['q_ppe'] = 'What PPE is needed?';
+$string['q_ppe_backup'] = 'If the elimination is not approved, what PPE is needed?';
 $string['q_reduce'] = 'How can the risk be lowered?';
+$string['q_reduce_backup'] = 'If the elimination is not approved, how can the risk be lowered?';
 $string['q_subindustry'] = 'Sub-industry';
 $string['q_task'] = 'Which work task is this activity about?';
 $string['q_task_help'] = 'Choose the industry, then the sub-industry, then the task. Each list follows your choice above it. Choose "Other" at any level to type your own.';
@@ -734,7 +737,9 @@ $string['review_distractor'] = 'not in the picture';
 $string['review_help'] = 'Untick any scene you don\'t want. You can edit every scene afterwards, and add its picture in the next step.';
 $string['review_title'] = 'Draft: {$a} scenes';
 $string['right'] = 'Right';
+$string['risk_ifnot'] = 'If not approved:';
 $string['risk_title'] = 'Risk of hazard {$a}';
+$string['risk_title_ifnot'] = 'Hazard {$a} if the elimination is not approved';
 $string['riskrating'] = 'Risk rating';
 $string['row_eliminate'] = 'Eliminate';
 $string['row_hazard'] = 'Hazard';

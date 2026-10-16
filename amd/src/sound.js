@@ -204,6 +204,27 @@ const SOUNDS = {
     micon: () => tone(660, 0, 0.08, {type: 'sine', to: 990, vol: 0.12}),
     // Microphone closes.
     micoff: () => tone(990, 0, 0.08, {type: 'sine', to: 660, vol: 0.1}),
+    // A step card hops to the next step: soft rising pop.
+    step: () => {
+        tone(587, 0, 0.08, {type: 'sine', to: 880, vol: 0.13});
+        tone(1175, 0.07, 0.14, {type: 'triangle', vol: 0.08});
+        noise(0, 0.06, {freq: 3200, to: 5200, vol: 0.025});
+    },
+    // The cards swoop left to the next hazard: airy swoosh with a low glide.
+    swoop: () => {
+        noise(0, 0.42, {freq: 300, to: 2600, q: 0.6, vol: 0.11});
+        tone(330, 0.02, 0.36, {type: 'sine', to: 660, vol: 0.06});
+    },
+    // Eyes here: a light double ping as the next spot bounces.
+    ping: () => {
+        tone(1568, 0, 0.12, {type: 'sine', vol: 0.09});
+        tone(2093, 0.1, 0.18, {type: 'sine', vol: 0.07});
+    },
+    // A whole hazard done: warm, sparkling chord.
+    hazarddone: () => {
+        [523, 784, 1047, 1319].forEach((f, i) => tone(f, i * 0.06, 0.45, {type: 'triangle', vol: 0.12}));
+        noise(0.12, 0.3, {freq: 6000, to: 9500, vol: 0.02});
+    },
     // Timer tick (last seconds).
     tick: () => tone(1200, 0, 0.03, {type: 'square', vol: 0.03}),
 };

@@ -53,9 +53,68 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'result_passmark', 'result_missed', 'result_wrongchosen', 'result_labelled', 'result_perfect', 'result_start', 'result_end',
     'tryagain', 'next_study', 'next_practice', 'next_test', 'attemptsleft', 'eliminated', 'matrix',
     'rating_low', 'rating_medium', 'rating_high', 'rating_extreme', 'rating_eliminated', 'gauge_value',
+    'hcard_title', 'hcard_unknown', 'hcard_done', 'hcard_next', 'hcard_back', 'step_hazard', 'step_eliminate', 'step_reduce',
+    'step_ppe', 'hint_hazard', 'hint_eliminate', 'hint_reduce_practice', 'hint_ppe_practice', 'hint_reduce_test',
+    'hint_ppe_test', 'hint_study', 'intro_close', 'intro_lead', 'intro_then', 'card_now', 'card_skip', 'step_n',
+    'found_of', 'praise_1', 'praise_2', 'praise_3', 'praise_4', 'praise_5', 'streak', 'pop_great', 'pop_cut',
+    'pop_saved', 'pop_learned', 'scene_pop', 'scene_pop_cut', 'stars_label', 'hazards',
+    'hazards_done', 'hazard_here', 'steps_label', 'fb_saved', 'more', 'less', 'close', 'test_gauges_short',
+    ...['study', 'practice', 'test'].flatMap((m) => ['intro_title_' + m, 'intro_note_' + m]),
+    ...ROWS.flatMap((r) => ['q_' + r, 'card_q_' + r, 'intro_step_' + r]),
     ...LIKELIHOOD.map((k) => 'l_' + k), ...CONSEQUENCE.map((k) => 'c_' + k), ...LEVELS.map((k) => 'level_' + k)];
 
 let S = {};
+
+/** Free space kept between Moodle's fixed top bar and the slide. */
+const NAVGAP = 16;
+
+/**
+ * Where the slide sits when scrolled to: 16px under the theme's fixed top bar (measured, so any theme and Moodle
+ * version lines up; 16px from the top when the theme has none).
+ *
+ * @returns {number}
+ */
+const navTop = () => {
+    const bar = document.querySelector('nav.navbar.fixed-top, .navbar.fixed-top, #page-header.fixed-top');
+    const bottom = bar && getComputedStyle(bar).position === 'fixed' ? bar.getBoundingClientRect().bottom : 0;
+    return Math.max(0, Math.round(bottom)) + NAVGAP;
+};
+/** Free space kept under the slide. */
+const GAP = 16;
+/** The picture's shape (16:10) and its smallest height; the side panel's narrowest and widest. */
+const RATIO = 1.6;
+const PIC_MIN = 220;
+const SIDE_MIN = 340;
+const SIDE_WIDE = 460;
+const SIDE_MAX = 560;
+/** Below this width the picture and the side panel stack (the picture would be smaller than about 500px). */
+const STACK = 760;
+/** Below this screen height the step cards and the scene description are compact. */
+const SHORT = 740;
+/** Below this row height the feedback shows over the step cards instead of under the answers. */
+const FB_SIDE = 540;
+/** Below this row height the answers and a done hazard's summary are compact. */
+const TIGHT = 420;
+/** The footer's height on one line. */
+const FOOT_H = 64;
+/** How long feedback over the step cards stays (paused while the pointer is on it). */
+const FB_TIME = 8000;
+
+/**
+ * A tick (or a cross) in a circle; drawn with a short animation when it has just appeared.
+ *
+ * @param {boolean} ok
+ * @param {boolean} animate
+ * @returns {HTMLElement}
+ */
+const tickMark = (ok, animate = false) => {
+    const node = el('span', 'sh-tick ' + (ok ? 'is-ok' : 'is-no') + (animate && !REDUCED ? ' is-drawn' : ''),
+        {'aria-hidden': 'true'});
+    const svg = icon(ok ? 'check' : 'cross');
+    svg.querySelectorAll('path').forEach((p) => p.setAttribute('pathLength', '1'));
+    node.appendChild(svg);
+    return node;
+};
 
 /**
  * The risk rating of a likelihood and a consequence (the server's 5 × 5 matrix).
@@ -82,14 +141,6 @@ const rating = (l, c) => {
  * @returns {number}
  */
 const riskScore = (now) => (now.eliminated ? 0 : now.likelihood * now.consequence);
-
-/**
- * The risk rating of a hazard now ('eliminated' once eliminated).
- *
- * @param {object} now {likelihood, consequence, eliminated}
- * @returns {string}
- */
-const riskName = (now) => (now.eliminated ? 'eliminated' : rating(now.likelihood, now.consequence));
 
 /**
  * The colour band of a 1 to 5 value: green at 1 and 2, amber at 3, red at 4 and 5.
@@ -235,9 +286,21 @@ class Player {
         this.live = root.querySelector('[data-region="live"]');
         this.voice = new Voice();
         this.busy = false;
-        this.picked = null;
         Sound.setAllowed(!!this.config.sounds);
         this.onFullChange = () => this.syncFull();
+        // The Moodle course drawer changes the width without a window resize, so the host is watched too.
+        let frame = 0;
+        const refit = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => this.fit());
+        };
+        window.addEventListener('resize', refit);
+        if (window.ResizeObserver) {
+            new ResizeObserver(refit).observe(this.host);
+        }
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => this.fit()).catch(() => null);
+        }
         document.addEventListener('fullscreenchange', this.onFullChange);
         document.addEventListener('webkitfullscreenchange', this.onFullChange);
     }
@@ -302,6 +365,197 @@ class Player {
             btn.setAttribute('aria-label', label);
             btn.setAttribute('title', label);
         }
+        requestAnimationFrame(() => {
+            this.fit();
+            if (!full && this.stage) {
+                // Back from full screen: the slide comes back up under Moodle's top bar.
+                this.align();
+            }
+        });
+    }
+
+    /**
+     * Sizes the slide to the screen, so it never goes below the fold, in the page or in full screen.
+     *
+     * Everything is measured, nothing is guessed: the height left for the picture row is the screen height, less 16px
+     * under Moodle's top bar (or the full-screen padding), the scene title, the step cards, the footer and 16px at the
+     * bottom. The picture (16:10) takes that height unless the column is too narrow; the side panel may use the whole
+     * row and scrolls inside only if its content is taller still. A very wide screen centres the slide instead of
+     * stretching the side panel.
+     */
+    fit() {
+        const play = this.stage && this.stage.querySelector('.sh-play');
+        if (!play || !play.isConnected) {
+            return;
+        }
+        const left = play.querySelector('.sh-play-left');
+        const side = play.querySelector('.sh-side');
+        const main = side.parentNode;
+        const foot = play.querySelector('.sh-play-foot');
+        if (this.layoutMode(play)) {
+            // Too narrow for the picture and the panel side by side (tablets, phones, a small window with the course
+            // drawer open): one column, and the page scrolls.
+            [play, left, side].forEach((n) => n.style.removeProperty('max-width'));
+            ['max-height', 'height', 'min-width'].forEach((p) => side.style.removeProperty(p));
+            this.host.style.removeProperty('margin-bottom');
+            this.cards.classList.toggle('is-narrow', this.cards.firstChild.getBoundingClientRect().width < 175);
+            this.dock(false);
+            return;
+        }
+        const shellnode = this.host.querySelector('.sh-shell');
+        const cs = getComputedStyle(shellnode);
+        const full = this.isFull();
+        const hostcs = getComputedStyle(this.host);
+        const top = full ? parseFloat(hostcs.paddingTop) : navTop();
+        this.host.style.scrollMarginTop = navTop() + 'px';
+        const bottom = full ? parseFloat(hostcs.paddingBottom) : GAP;
+        const gap = parseFloat(getComputedStyle(main).columnGap) || 14;
+        const leftgap = parseFloat(getComputedStyle(left).rowGap) || 10;
+        const sidemin = this.sideMin || SIDE_MIN;
+        side.style.minWidth = sidemin + 'px';
+        let row = 0;
+        for (let i = 0; i < 3; i++) {
+            const shell = shellnode.getBoundingClientRect();
+            const m = main.getBoundingClientRect();
+            const above = m.top - shell.top;
+            const below = foot.getBoundingClientRect().bottom - m.bottom + parseFloat(cs.paddingBottom)
+                + parseFloat(cs.borderBottomWidth);
+            row = Math.max(PIC_MIN + 100, Math.floor(window.innerHeight - top - bottom - above - below));
+            const tcs = getComputedStyle(this.track);
+            const track = this.track.getBoundingClientRect().height + parseFloat(tcs.marginTop)
+                + parseFloat(tcs.marginBottom);
+            const width = play.parentNode.getBoundingClientRect().width;
+            const ph = Math.max(PIC_MIN, row - track - leftgap);
+            const pw = Math.floor(Math.max(PIC_MIN * RATIO * 0.8, Math.min(ph * RATIO, width - sidemin - gap)));
+            left.style.maxWidth = pw + 'px';
+            // A hazard's name on its spot never runs off the picture.
+            this.figure.style.setProperty('--sh-spotname', Math.max(90, Math.round(pw * 0.36)) + 'px');
+            // A wide screen: the side panel stops at SIDE_MAX and the slide is centred.
+            const capped = pw + gap + SIDE_MAX;
+            const was = play.style.maxWidth;
+            play.style.maxWidth = capped < width ? capped + 'px' : '';
+            // The side panel always takes the whole row, so the slide keeps one height from answer to answer (the
+            // page never jumps); a long list of answers scrolls inside it.
+            side.style.height = row + 'px';
+            this.rowH = row;
+            // A low row: the answers and a done hazard's steps take the compact form.
+            play.classList.toggle('is-tight', row < TIGHT);
+            side.style.maxHeight = row + 'px';
+            if (play.style.maxWidth === was && Math.abs(main.getBoundingClientRect().top - m.top) < 1) {
+                break;
+            }
+        }
+        if (!full) {
+            this.roomBelow();
+        }
+        this.dock(row < FB_SIDE);
+        this.cards.classList.toggle('is-narrow', this.cards.firstChild.getBoundingClientRect().width < 175);
+        // The footer on one line: on a narrow slide the gauges give way to the matrix and the rating.
+        foot.classList.remove('is-tight');
+        foot.classList.toggle('is-tight', foot.scrollWidth > foot.clientWidth + 1
+            || foot.getBoundingClientRect().height > FOOT_H + 1);
+    }
+
+    /**
+     * Picks the layout for the screen: stacked (one column), short (compact header and cards) or normal.
+     *
+     * @param {HTMLElement} play
+     * @returns {boolean} whether the slide is stacked
+     */
+    layoutMode(play) {
+        const stacked = window.matchMedia('(max-width: 991.98px)').matches
+            || play.parentNode.getBoundingClientRect().width < STACK;
+        play.classList.toggle('is-stacked', stacked);
+        const short = !stacked && window.innerHeight < SHORT;
+        play.classList.toggle('is-short', short);
+        this.host.querySelector('.sh-shell').classList.toggle('is-short', short);
+        const ctx = play.querySelector('.sh-scene-context');
+        const more = play.querySelector('.sh-scene-more');
+        if (ctx && more && !ctx.classList.contains('is-open')) {
+            more.hidden = ctx.scrollHeight <= ctx.clientHeight + 1;
+        }
+        return stacked;
+    }
+
+    /**
+     * Where the feedback shows: under the answers when the side panel has room, otherwise over the step cards under
+     * the picture (it then closes by itself after a while, or with ×), so the answers never need scrolling.
+     *
+     * @param {boolean} docked
+     */
+    dock(docked) {
+        if (this.fbDocked === docked && this.feedback.isConnected) {
+            return;
+        }
+        this.fbDocked = docked;
+        this.feedback.classList.toggle('is-docked', docked);
+        if (docked) {
+            this.track.parentNode.appendChild(this.feedback);
+        } else {
+            this.box.insertBefore(this.feedback, this.hNext);
+        }
+    }
+
+    /**
+     * Shows feedback (or clears it).
+     *
+     * @param {...HTMLElement} nodes
+     */
+    setFeedback(...nodes) {
+        clearTimeout(this.fbTimer);
+        this.feedback.classList.remove('is-out');
+        this.feedback.replaceChildren(...nodes);
+        if (!this.fbDocked || !nodes.length) {
+            return;
+        }
+        const close = iconButton('sh-fb-close', S.close, 'cross', () => this.hideFeedback());
+        nodes[0].appendChild(close);
+        this.fbTimer = setTimeout(() => this.hideFeedback(), FB_TIME);
+    }
+
+    /**
+     * Hides feedback shown over the step cards.
+     */
+    hideFeedback() {
+        clearTimeout(this.fbTimer);
+        if (!this.feedback.children.length) {
+            return;
+        }
+        this.feedback.classList.add('is-out');
+        this.fbTimer = setTimeout(() => {
+            this.feedback.replaceChildren();
+            this.feedback.classList.remove('is-out');
+        }, 300);
+    }
+
+    /**
+     * Makes sure the page can scroll far enough to bring the slide up under Moodle's top bar (a short page cannot),
+     * by adding the missing space under the player.
+     */
+    roomBelow() {
+        const doc = document.scrollingElement || document.documentElement;
+        const had = parseFloat(this.host.style.marginBottom) || 0;
+        const shelltop = this.host.getBoundingClientRect().top + window.scrollY;
+        const need = shelltop - navTop() + window.innerHeight;
+        const short = need - (doc.scrollHeight - had);
+        const add = Math.max(0, Math.ceil(short));
+        if (Math.abs(add - had) > 1) {
+            this.host.style.marginBottom = add ? add + 'px' : '';
+        }
+    }
+
+    /**
+     * Brings the slide back up under Moodle's top bar if it has moved (a new scene, or the page was scrolled).
+     */
+    align() {
+        if (this.isFull() || this.stage.querySelector('.sh-play.is-stacked')) {
+            return;
+        }
+        const top = this.host.getBoundingClientRect().top;
+        const want = navTop();
+        if (Math.abs(top - want) > 2) {
+            window.scrollBy({top: top - want, behavior: 'auto'});
+        }
     }
 
     /**
@@ -350,7 +604,61 @@ class Player {
         // Resume at the first scene not finished.
         const first = this.data.scenes.findIndex((s) => !s.complete);
         this.show(this.mode === 'study' ? 0 : Math.max(0, first));
+        this.intro();
         this.host.scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth', block: 'start'});
+    }
+
+    /**
+     * How this mode works, in a few simple steps, before the first scene. Closed with the button, Esc or a tap outside.
+     */
+    intro() {
+        const overlay = el('div', 'sh-intro', {role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'sh-intro-title'});
+        const card = el('div', 'sh-intro-card');
+        card.appendChild(el('span', 'sh-modebadge sh-modebadge-' + this.mode, {text: S['mode_' + this.mode]}));
+        card.appendChild(el('h3', '', {id: 'sh-intro-title', text: S['intro_title_' + this.mode]}));
+        card.appendChild(el('p', 'sh-intro-lead', {text: S.intro_lead}));
+        // The four steps for each hazard, as a row of icons.
+        const list = el('ol', 'sh-intro-steps');
+        ROWS.forEach((r, i) => {
+            const li = el('li', 'sh-intro-step sh-intro-' + r, {style: '--d:' + (150 + i * 90) + 'ms'});
+            const ic = el('span', 'sh-intro-icon');
+            ic.appendChild(icon(r));
+            li.append(ic, el('span', 'sh-intro-num', {text: String(i + 1)}), el('strong', '', {text: S['step_' + r]}),
+                el('span', 'sh-intro-text', {text: S['intro_step_' + r]}));
+            list.appendChild(li);
+        });
+        card.appendChild(list);
+        const then = el('p', 'sh-intro-then');
+        then.append(icon('next'), el('span', '', {text: S.intro_then}));
+        card.appendChild(then);
+        const note = el('p', 'sh-intro-note');
+        note.append(icon('info'), el('span', '', {text: S['intro_note_' + this.mode]}));
+        card.appendChild(note);
+        const close = () => {
+            overlay.remove();
+            document.removeEventListener('keydown', esc);
+            const h = this.active();
+            if (h && this.mode !== 'study') {
+                this.lookHere(h);
+            }
+            this.box?.querySelector('.sh-opt:not([disabled])')?.focus({preventScroll: true});
+        };
+        const esc = (e) => {
+            if (e.key === 'Escape') {
+                close();
+            }
+        };
+        const ok = button('sh-btn sh-btn-primary sh-btn-go', S.intro_close, 'next', close, {after: true});
+        card.appendChild(ok);
+        overlay.appendChild(card);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                close();
+            }
+        });
+        document.addEventListener('keydown', esc);
+        this.host.appendChild(overlay);
+        ok.focus({preventScroll: true});
     }
 
     /**
@@ -408,8 +716,15 @@ class Player {
         this.voice.stop();
         this.index = index;
         this.scene = this.data.scenes[index];
-        this.picked = null;
         this.studystep = 0;
+        this.studyHazard = 0;
+        this.view = null;
+        this.hold = null;
+        this.tried = new Set();
+        this.streak = 0;
+        this.misses = this.misses || {};
+        this.fresh = null;
+        this.doneFor = null;
         Array.from(this.dots.children).forEach((d, i) => {
             d.classList.toggle('is-current', i === index);
             if (i === index) {
@@ -420,6 +735,11 @@ class Player {
         });
         const scene = this.scene;
         const wrap = el('div', 'sh-play');
+        // Long answers get a wider side panel (fewer lines each), so the panel fits beside the picture.
+        const texts = scene.chips.map((c) => c.text).concat(...scene.spots.map((h) => KINDS.flatMap((k) =>
+            (h.rows[k] || []).map((c) => c.text))));
+        const longest = Math.max(0, ...texts.map((t) => String(t || '').length));
+        this.sideMin = Math.round(Math.min(SIDE_WIDE, Math.max(SIDE_MIN, SIDE_MIN + (longest - 40) * 3.5)));
         // What is happening in this step of the task.
         const head = el('div', 'sh-scene-head');
         const titles = el('div', 'sh-scene-titles');
@@ -427,7 +747,20 @@ class Player {
             el('h3', 'sh-scene-title', {dir: 'auto', text: scene.title}));
         if (scene.context) {
             // What is happening in this step of the task, under the title (kept short to leave room for the picture).
-            titles.appendChild(el('p', 'sh-scene-context', {dir: 'auto', text: scene.context}));
+            const ctx = el('p', 'sh-scene-context', {dir: 'auto', text: scene.context});
+            titles.appendChild(ctx);
+            // Two lines at most, so a long description never pushes the slide below the fold; "More" shows it all.
+            const more = el('button', 'sh-scene-more', {type: 'button', 'aria-expanded': 'false', text: S.more, hidden: true});
+            more.addEventListener('click', () => {
+                const open = ctx.classList.toggle('is-open');
+                more.setAttribute('aria-expanded', open ? 'true' : 'false');
+                more.textContent = open ? S.less : S.more;
+                this.fit();
+            });
+            titles.appendChild(more);
+            requestAnimationFrame(() => {
+                more.hidden = ctx.scrollHeight <= ctx.clientHeight + 1;
+            });
         }
         head.appendChild(titles);
         if (scene.voice && scene.voice.length) {
@@ -451,58 +784,84 @@ class Player {
         wrap.appendChild(head);
 
         const main = el('div', 'sh-play-main');
-        // The picture with its spots, and the label box under it (nothing covers the picture).
+        // The picture with its numbered spots.
         this.figure = el('div', 'sh-figure');
         const pic = el('div', 'sh-pic');
         pic.appendChild(el('img', '', {src: scene.image, alt: '', draggable: 'false'}));
         this.spotnodes = new Map();
         scene.spots.forEach((spot) => pic.appendChild(this.spotNode(spot)));
         this.figure.appendChild(pic);
-        this.box = el('div', 'sh-labelbox', {role: 'group', 'aria-label': S.labelbox});
-        this.rows = {};
-        ROWS.forEach((row) => {
-            const r = el('div', 'sh-lrow sh-row-' + row, {'data-row': row});
-            const label = el('div', 'sh-lrow-head', {title: S['rowhelp_' + row], tabindex: '0',
-                'aria-label': S['row_' + row] + '. ' + S['rowhelp_' + row]});
-            label.append(icon(row === 'hazard' ? 'hazard' : row), el('span', 'sh-lrow-name', {text: S['row_' + row]}),
-                el('span', 'sh-lrow-tip', {text: S['rowhelp_' + row], 'aria-hidden': 'true'}));
-            const chips = el('div', 'sh-lrow-chips');
-            r.append(label, chips);
-            this.box.appendChild(r);
-            this.rows[row] = {node: r, chips};
-        });
-        this.figure.appendChild(this.box);
-        // The picture column: the picture, its label box and the feedback, all as wide as the picture.
+        // Under the picture: the four steps of the hazard being worked on, as cards that slide to the next hazard.
         const left = el('div', 'sh-play-left');
         left.appendChild(this.figure);
-        this.feedback = el('div', 'sh-feedback', {'aria-live': 'polite'});
-        left.appendChild(this.feedback);
+        this.track = el('div', 'sh-steptrack');
+        this.set = el('div', 'sh-stepset');
+        this.setLabel = el('span', 'sh-stepset-label');
+        this.cards = el('ol', 'sh-stepcards', {'aria-label': S.steps_label});
+        this.cardsFor = null;
+        this.cardnodes = {};
+        ROWS.forEach((row, i) => {
+            const li = el('li', 'sh-stepcard sh-stepcard-' + row, {'data-row': row});
+            const k = el('div', 'sh-stepcard-head');
+            k.append(el('span', 'sh-stepcard-icon', {}), el('span', 'sh-stepcard-name', {text: S['step_' + row]}));
+            k.firstChild.appendChild(icon(row));
+            const tag = el('span', 'sh-stepcard-tag', {text: String(i + 1)});
+            k.appendChild(tag);
+            const body = el('div', 'sh-stepcard-body', {dir: 'auto'});
+            li.append(k, body);
+            this.cards.appendChild(li);
+            this.cardnodes[row] = {node: li, tag, body};
+        });
+        this.set.append(this.setLabel, this.cards);
+        this.track.appendChild(this.set);
+        left.appendChild(this.track);
         main.appendChild(left);
 
-        // The gauges for the hazard being worked on.
+        // Beside the picture: the hazard, the question for the step, its answers, the feedback and the risk.
         const side = el('aside', 'sh-side', {'aria-label': S.activehazard});
+        this.box = el('section', 'sh-hcard', {'aria-label': S.labelbox});
+        const top = el('div', 'sh-hcard-top');
+        const heads = el('div', 'sh-hcard-heads');
+        this.hTitle = el('h4', 'sh-hcard-title');
+        this.hName = el('span', 'sh-hcard-name', {dir: 'auto'});
+        heads.append(this.hTitle, this.hName);
         this.tabs = el('div', 'sh-hztabs', {role: 'tablist'});
-        side.appendChild(this.tabs);
-        this.activeName = el('p', 'sh-active-name', {dir: 'auto'});
-        side.appendChild(this.activeName);
+        top.append(heads, this.tabs);
+        this.q = el('div', 'sh-question', {dir: 'auto'});
+        this.qs = el('p', 'sh-question-help', {dir: 'auto'});
+        this.opts = el('div', 'sh-options', {role: 'group'});
+        this.feedback = el('div', 'sh-feedback', {'aria-live': 'polite'});
+        this.fbDocked = false;
+        this.feedback.addEventListener('pointerenter', () => clearTimeout(this.fbTimer));
+        this.feedback.addEventListener('pointerleave', () => {
+            if (this.fbDocked && this.feedback.children.length) {
+                this.fbTimer = setTimeout(() => this.hideFeedback(), FB_TIME / 2);
+            }
+        });
+        this.hNext = el('div', 'sh-hcard-next');
+        // Test: "Done with this row" stays under the answers, outside their list, so it is always in view.
+        this.doneBar = el('div', 'sh-donebar');
+        this.box.append(top, this.q, this.qs, this.opts, this.doneBar, this.feedback, this.hNext);
+        side.appendChild(this.box);
+
+        // The risk of the hazard shown: gauges, rating, matrix and the risk removed (hidden in a test).
+        const risk = el('div', 'sh-riskpanel');
         const gauges = el('div', 'sh-gauges');
         this.gauges = gauges;
         this.gL = gauge(S.likelihood, LIKELIHOOD.map((k) => S['l_' + k]));
         this.gC = gauge(S.consequence, CONSEQUENCE.map((k) => S['c_' + k]));
         gauges.append(this.gL.node, this.gC.node);
-        side.appendChild(gauges);
-        this.ratingNode = el('div', 'sh-riskrow');
-        side.appendChild(this.ratingNode);
         this.matrix = this.buildMatrix();
-        side.appendChild(this.matrix);
-        this.testnote = el('p', 'sh-mini sh-testnote', {text: S.test_gauges, hidden: this.mode !== 'test'});
-        side.appendChild(this.testnote);
-        this.applied = el('div', 'sh-applied');
-        side.appendChild(this.applied);
-        const bars = el('div', 'sh-bars');
+        risk.append(gauges, this.matrix);
+        this.ratingNode = el('div', 'sh-riskrow');
+        risk.appendChild(this.ratingNode);
         this.safety = this.bar(S.safetybar, S.safetybar_help, 'safety');
-        bars.appendChild(this.safety.node);
-        side.appendChild(bars);
+        this.applied = el('div', 'sh-applied');
+        const lock = el('p', 'sh-riskpanel-test', {hidden: this.mode !== 'test', title: S.test_gauges});
+        lock.append(icon('info'), el('span', '', {text: S.test_gauges_short}));
+        this.testnote = lock;
+        risk.hidden = this.mode === 'test';
+        this.riskpanel = risk;
         main.appendChild(side);
         wrap.appendChild(main);
 
@@ -517,20 +876,16 @@ class Player {
                 this.show(index + 1);
             }
         }, {after: !last});
-        foot.append(this.studybtn, this.nextbtn);
+        this.progress = el('span', 'sh-play-progress');
+        // The footer is the slide's status bar: the hazards, the risk of the one worked on, the risk removed, and Next.
+        foot.append(this.progress, risk, this.testnote, this.safety.node, this.studybtn, this.nextbtn);
         wrap.appendChild(foot);
         this.stage.replaceChildren(wrap);
 
-        // A tap on the picture drops the label picked with a tap or the keyboard.
-        this.figure.addEventListener('click', (e) => {
-            if (this.picked && !e.target.closest('.sh-spot, .sh-labelbox')) {
-                const row = this.picked.row;
-                if (row !== 'hazard') {
-                    this.dropOn(this.active(), this.picked);
-                }
-            }
-        });
         this.refresh();
+        if (this.stage.isConnected && index > 0) {
+            this.align();
+        }
         this.say(scene.title);
     }
 
@@ -592,9 +947,7 @@ class Player {
         node.append(el('span', 'sh-spot-num', {text: String(spot.number)}), el('span', 'sh-spot-name', {dir: 'auto'}));
         node.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (this.picked) {
-                this.dropOn(spot, this.picked);
-            } else if (spot.found) {
+            if (spot.found || this.mode === 'study') {
                 this.focusHazard(spot);
             }
         });
@@ -603,34 +956,43 @@ class Player {
     }
 
     /**
-     * The hazard being worked on: in Study the one shown, otherwise the first found hazard not finished.
+     * The hazard being worked on: one at a time, in order (Study: the one being studied). A hazard just finished
+     * stays until the learner moves on with "Next: Hazard n".
      *
      * @returns {object|null}
      */
     active() {
         const spots = this.scene.spots;
-        if (this.focus && spots.includes(this.focus) && (this.mode === 'study' || !this.focus.complete)) {
-            return this.focus;
-        }
         if (this.mode === 'study') {
             return spots[Math.min(this.studyHazard || 0, spots.length - 1)];
         }
-        if (spots.some((s) => !s.found)) {
-            return null;
+        if (this.hold && spots.includes(this.hold)) {
+            return this.hold;
         }
         return spots.find((s) => !s.complete) || null;
     }
 
     /**
-     * Shows a found hazard's gauges (Study: makes it the hazard shown).
+     * The hazard shown in the card and on the gauges: the active one, or a finished one the learner looks back at.
+     *
+     * @returns {object|null}
+     */
+    shown() {
+        return this.view && this.scene.spots.includes(this.view) ? this.view : this.active();
+    }
+
+    /**
+     * Shows a hazard (Study: makes it the hazard studied; otherwise looks back at a finished one).
      *
      * @param {object} spot
      */
     focusHazard(spot) {
-        this.focus = spot;
         if (this.mode === 'study') {
             this.studyHazard = this.scene.spots.indexOf(spot);
             this.studystep = 0;
+            this.view = null;
+        } else {
+            this.view = spot === this.active() ? null : spot;
         }
         this.refresh();
         if (spot.voice && spot.voice.length) {
@@ -639,174 +1001,476 @@ class Player {
     }
 
     /**
-     * The row the learner works on now.
-     *
-     * @returns {string|null} hazard, eliminate, reduce, ppe or null when the scene is finished
+     * Moves on to the next hazard: the card slides and the next spot on the picture bounces.
      */
-    currentRow() {
+    nextHazard() {
+        // The cards of the hazard just finished slide out to the left as the next hazard's cards slide in.
+        const old = REDUCED ? null : this.set.cloneNode(true);
+        this.view = null;
         if (this.mode === 'study') {
-            return null;
+            this.studyHazard = Math.min((this.studyHazard || 0) + 1, this.scene.spots.length - 1);
+            this.studystep = 0;
+        } else {
+            this.hold = null;
         }
-        if (this.scene.spots.some((s) => !s.found)) {
-            return 'hazard';
-        }
+        this.setFeedback();
+        this.refresh();
         const h = this.active();
-        return h ? KINDS.find((k) => !h.done[k]) || null : null;
+        if (old) {
+            old.classList.add('is-leaving');
+            old.setAttribute('aria-hidden', 'true');
+            this.track.appendChild(old);
+            setTimeout(() => old.remove(), 700);
+            [this.set, this.box].forEach((n) => {
+                n.classList.remove('is-entering');
+                void n.offsetWidth;
+                n.classList.add('is-entering');
+            });
+        }
+        if (h) {
+            this.lookHere(h);
+            Sound.play('swoop');
+            this.say(fmt(S.hcard_title, {number: h.number, total: this.scene.spots.length}));
+        }
     }
 
     /**
-     * Draws the spots, the rows of labels, the gauges and the buttons from the scene's state.
+     * Draws the eye to a spot on the picture: it bounces, sends out rings and says "Hazard n is here" for a moment.
+     *
+     * @param {object} h
+     */
+    lookHere(h) {
+        const node = this.spotnodes.get(h.id);
+        if (!node || REDUCED) {
+            return;
+        }
+        node.classList.remove('is-new');
+        void node.offsetWidth;
+        node.classList.add('is-new');
+        setTimeout(() => Sound.play('ping'), 380);
+        this.figure.querySelectorAll('.sh-callout').forEach((n) => n.remove());
+        const call = el('span', 'sh-callout' + (h.y < 22 ? ' is-below' : ''), {text: fmt(S.hazard_here, h.number),
+            'aria-hidden': 'true'});
+        call.style.left = h.x + '%';
+        call.style.top = h.y + '%';
+        node.parentNode.appendChild(call);
+        setTimeout(() => {
+            call.remove();
+            node.classList.remove('is-new');
+        }, 2600);
+    }
+
+    /**
+     * The step the learner works on now.
+     *
+     * @returns {string|null} hazard, eliminate, reduce, ppe or null (Study, or the hazard is finished)
+     */
+    currentRow() {
+        const h = this.active();
+        if (this.mode === 'study' || !h || h.complete) {
+            return null;
+        }
+        if (!h.found) {
+            return 'hazard';
+        }
+        return KINDS.find((k) => !Number(h.done[k])) || null;
+    }
+
+    /**
+     * The instruction for a step.
+     *
+     * @param {string} r
+     * @param {object} h
+     * @returns {string}
+     */
+    hint(r, h) {
+        if (r === 'hazard') {
+            return fmt(S.hint_hazard, h.number);
+        }
+        if (r === 'eliminate') {
+            return S.hint_eliminate;
+        }
+        if (this.mode === 'test') {
+            return S['hint_' + r + '_test'];
+        }
+        const found = (h.rows[r] || []).filter((c) => Number(c.chosen) && Number(c.correct)).length;
+        return fmt(S['hint_' + r + '_practice'], {found, total: (h.need && h.need[r]) || found});
+    }
+
+    /**
+     * Draws the spots, the step cards, the question, the gauges and the buttons from the scene's state.
      */
     refresh() {
         const scene = this.scene;
-        const row = this.currentRow();
-        const h = this.active();
         const study = this.mode === 'study';
-        // Spots.
+        const cur = this.active();
+        const h = this.shown();
+        const viewing = !!h && h !== cur;
+        let row = null;
+        if (h && study) {
+            row = this.studyRow(h);
+        } else if (h && !viewing) {
+            row = this.currentRow();
+        }
+        // Spots: the one to work on pulses; the ones still to come wait quietly.
         scene.spots.forEach((s) => {
             const node = this.spotnodes.get(s.id);
-            const shown = study || s.found;
-            node.classList.toggle('is-found', !!shown);
+            const named = study || s.found;
+            node.classList.toggle('is-found', !!named);
             node.classList.toggle('is-complete', !!s.complete && !study);
-            node.classList.toggle('is-active', h === s && !!h);
-            node.classList.toggle('is-target', (row === 'hazard' && !s.found) || (!!row && row !== 'hazard' && h === s));
+            node.classList.toggle('is-active', s === h);
+            node.classList.toggle('is-target', !study && s === cur && !s.complete);
+            node.classList.toggle('is-later', !study && !s.found && s !== cur);
             node.classList.toggle('is-left', s.x > 62);
-            node.querySelector('.sh-spot-name').textContent = shown ? (s.name || '') : '';
-            node.setAttribute('aria-label', shown ? fmt(S.spot_found, {number: s.number, name: s.name || ''})
+            node.querySelector('.sh-spot-num').textContent = s.complete && !study ? '✓' : String(s.number);
+            // Only the hazard shown carries its name on the picture, so the spots never crowd the image.
+            node.querySelector('.sh-spot-name').textContent = named && s === h ? (s.name || '') : '';
+            node.title = named ? (s.name || '') : '';
+            node.setAttribute('aria-label', named ? fmt(S.spot_found, {number: s.number, name: s.name || ''})
                 : fmt(S.spot, s.number));
         });
-        // Rows.
-        ROWS.forEach((r) => {
-            const {node, chips} = this.rows[r];
-            const state = this.rowState(r, row, h);
-            node.dataset.state = state;
-            chips.replaceChildren();
-            if (r === 'hazard') {
-                if (state === 'done') {
-                    chips.appendChild(el('span', 'sh-lrow-wait', {text: S.rowdone}));
-                } else {
-                    scene.chips.filter((c) => !c.placed).forEach((c) => chips.appendChild(this.chip(c, 'hazard', state === 'now')));
-                }
-                return;
-            }
-            if (!h) {
-                chips.appendChild(el('span', 'sh-lrow-wait', {text: S.rowwait_hazard}));
-                return;
-            }
-            const labels = h.rows[r] || [];
-            if (state === 'done') {
-                chips.appendChild(el('span', 'sh-lrow-wait', {text: h.now && h.now.eliminated && r !== 'eliminate'
-                    ? S.rowdone_eliminated : S.rowdone}));
-            }
-            labels.filter((c) => study || !c.chosen).forEach((c) => {
-                if (state !== 'done' || study) {
-                    chips.appendChild(this.chip(c, r, state === 'now' || study));
-                }
-            });
-            if (state === 'wait') {
-                chips.replaceChildren(el('span', 'sh-lrow-wait', {text: S.rowwait_controls}));
-            }
-            if (this.mode === 'test' && state === 'now' && r !== 'eliminate') {
-                chips.appendChild(button('sh-btn sh-btn-sm sh-btn-done', S.rowdone_button, 'check', () => this.doneRow(h, r)));
-            }
-        });
-        // Hazard tabs.
+        // The hazard: its number, its name once known, and the hazard tabs.
+        const title = h ? fmt(S.hcard_title, {number: h.number, total: scene.spots.length}) : '';
+        this.hTitle.textContent = title;
+        this.setLabel.textContent = title;
+        this.hName.textContent = h && (study || h.found) ? (h.name || '') : '';
+        this.hName.hidden = !this.hName.textContent;
+        this.box.dataset.row = row || 'done';
+        this.box.classList.toggle('is-finished', !row);
+        // When a hazard is done its box shows the risk, so the gauges make room for it.
+
+        this.drawCards(h, row, viewing);
+        this.drawQuestion(h, row);
+        this.drawNext(cur, h, viewing, row);
+        // Hazard numbers: look back at a finished hazard (Study: go to any hazard).
         this.tabs.replaceChildren(...scene.spots.map((s) => {
-            const tab = el('button', 'sh-hztab' + (s === h ? ' is-active' : '') + (s.complete && !study ? ' is-complete' : ''),
+            const done = s.complete && !study;
+            const tab = el('button', 'sh-hztab' + (s === h ? ' is-active' : '') + (done ? ' is-complete' : ''),
                 {type: 'button', role: 'tab', 'aria-selected': s === h ? 'true' : 'false',
-                    disabled: !(study || s.found) ? true : null, text: String(s.number)});
+                    'aria-label': fmt(S.hcard_title, {number: s.number, total: scene.spots.length}),
+                    disabled: !(study || s.complete || s === cur) ? true : null});
+            tab.appendChild(done && s !== h ? tickMark(true) : el('span', '', {text: String(s.number)}));
             tab.addEventListener('click', () => this.focusHazard(s));
             return tab;
         }));
-        this.activeName.textContent = h ? fmt(S.hazard_n, {number: h.number, name: h.name || ''}) : S.rowwait_hazard;
         this.showRisk(h, false);
-        this.showApplied(h);
         // Safety bar: the share of the starting risk removed so far in this scene (Practice and Study).
         this.safety.node.hidden = this.mode === 'test';
         this.safety.set(this.sceneSafety());
+        // Under the slide: a pill for each hazard of the scene, ticked when done.
+        const finished = scene.spots.filter((s) => s.complete).length;
+        this.progress.setAttribute('aria-label', fmt(S.hazards_done, {done: finished, total: scene.spots.length}));
+        this.progress.replaceChildren(el('span', 'sh-play-progress-label', {text: S.hazards, 'aria-hidden': 'true'}),
+            ...scene.spots.map((s) => {
+                const pill = el('span', 'sh-progpill' + (s.complete && !study ? ' is-done' : '') + (s === cur ? ' is-current' : ''),
+                    {'aria-hidden': 'true'});
+                pill.appendChild(s.complete && !study ? tickMark(true) : el('span', '', {text: String(s.number)}));
+                return pill;
+            }));
+        this.progress.hidden = study;
         this.studybtn.hidden = !study;
         this.nextbtn.disabled = !study && !scene.complete;
         if (study) {
-            this.studybtn.disabled = !h || this.studyDone(h);
+            this.studybtn.disabled = !cur || this.studyDone(cur);
         }
+        this.fit();
     }
 
     /**
-     * A row's state: now (the row to work on), done, wait (later) or off (nothing to do).
+     * The four step cards under the picture for the hazard shown.
      *
-     * @param {string} r the row
-     * @param {string|null} row the current row
-     * @param {object|null} h the active hazard
-     * @returns {string}
+     * @param {object|null} h
+     * @param {string|null} row the step worked on now
+     * @param {boolean} viewing
      */
-    rowState(r, row, h) {
-        if (this.mode === 'study') {
-            return r === 'hazard' ? 'done' : 'study';
+    drawCards(h, row, viewing) {
+        const same = h && this.cardsFor === h;
+        this.cardsFor = h;
+        ROWS.forEach((r, i) => {
+            const {node, tag, body} = this.cardnodes[r];
+            const state = h ? this.rowState(r, row, h, viewing) : 'wait';
+            const was = node.dataset.state;
+            node.dataset.state = state;
+            node.className = 'sh-stepcard sh-stepcard-' + r + ' is-' + state;
+            tag.className = 'sh-stepcard-tag';
+            tag.replaceChildren();
+            if (state === 'done') {
+                // A tick that draws itself when the step has just been finished.
+                tag.appendChild(tickMark(true, same && was && was !== 'done'));
+                tag.classList.add('is-done');
+            } else if (state === 'now') {
+                tag.textContent = S.card_now;
+                tag.classList.add('is-now');
+            } else {
+                tag.textContent = state === 'skip' ? '–' : String(i + 1);
+            }
+            body.replaceChildren(...(h ? this.summary(r, h, state) : []));
+        });
+    }
+
+    /**
+     * What a step card says: the answers chosen as pills, the question while it is worked on, or nothing yet.
+     *
+     * @param {string} r
+     * @param {object} h
+     * @param {string} state
+     * @param {number} max how many answers to show before "+n"
+     * @returns {HTMLElement[]}
+     */
+    summary(r, h, state, max = 1) {
+        const pill = (text, cls = '') => el('span', 'sh-pill sh-pill-' + r + (cls ? ' ' + cls : ''), {dir: 'auto', text,
+            title: text});
+        if (state === 'skip') {
+            return [el('span', 'sh-stepcard-note', {text: S.card_skip})];
         }
         if (r === 'hazard') {
-            return row === 'hazard' ? 'now' : 'done';
+            if (state === 'done') {
+                return [pill(h.name || '')];
+            }
+            return state === 'now' ? [el('span', 'sh-stepcard-note', {text: S.card_q_hazard})] : [];
         }
-        if (!h) {
-            return 'wait';
+        let chosen = (h.rows[r] || []).filter((c) => Number(c.chosen) && (Number(c.correct) || this.mode === 'test'));
+        if (this.mode === 'study') {
+            chosen = this.studyShown(h).filter((c) => c.kind === r);
         }
-        if (h.done[r]) {
-            return 'done';
+        if (state === 'wait' && !chosen.length) {
+            return [];
         }
-        return row === r ? 'now' : 'wait';
+        if (!chosen.length) {
+            return [el('span', 'sh-stepcard-note', {text: state === 'now' ? S['card_q_' + r] : S.rowdone})];
+        }
+        const out = chosen.slice(0, max).map((c) => pill(c.text));
+        if (chosen.length > max) {
+            out.push(pill('+' + (chosen.length - max), 'is-more'));
+        }
+        return out;
     }
 
     /**
-     * A draggable label.
+     * The question for the step worked on, its tip and its answers.
+     *
+     * @param {object|null} h
+     * @param {string|null} row
+     */
+    drawQuestion(h, row) {
+        const on = !!(h && row);
+        this.q.hidden = !on;
+        this.qs.hidden = !on;
+        this.opts.hidden = !on;
+        this.opts.replaceChildren();
+        this.doneBar.replaceChildren();
+        if (!on) {
+            return;
+        }
+        const n = ROWS.indexOf(row) + 1;
+        const key = h.id + ':' + row;
+        const changed = this.qkey !== key;
+        this.qkey = key;
+        this.q.className = 'sh-question sh-question-' + row;
+        if (changed && !REDUCED) {
+            void this.q.offsetWidth;
+            this.q.classList.add('is-new');
+        }
+        this.opts.classList.toggle('is-new', changed);
+        const step = el('span', 'sh-question-step');
+        step.append(icon(row), el('span', '', {text: fmt(S.step_n, n)}));
+        this.q.replaceChildren(step, el('span', 'sh-question-text', {text: fmt(S['q_' + row], h.number)}));
+        // The tip, and in Practice how many right answers are found so far, as dots.
+        this.qs.replaceChildren(el('span', 'sh-question-tip', {text: this.hint(row, h)}));
+        if (this.mode === 'practice' && (row === 'reduce' || row === 'ppe')) {
+            const found = (h.rows[row] || []).filter((c) => Number(c.chosen) && Number(c.correct)).length;
+            const need = Math.max(found, (h.need && h.need[row]) || 0);
+            const meter = el('span', 'sh-found', {'aria-label': fmt(S.found_of, {found, total: need})});
+            for (let i = 0; i < need; i++) {
+                meter.appendChild(el('span', 'sh-found-dot' + (i < found ? ' is-on' : ''), {'aria-hidden': 'true'}));
+            }
+            meter.appendChild(el('span', 'sh-found-text', {text: found + '/' + need, 'aria-hidden': 'true'}));
+            this.qs.appendChild(meter);
+        }
+        const labels = row === 'hazard' ? this.scene.chips.filter((c) => !c.placed) : (h.rows[row] || []);
+        labels.forEach((c, i) => this.opts.appendChild(this.chip(c, row, i, h)));
+        if (this.mode === 'test' && row !== 'eliminate' && row !== 'hazard') {
+            const chosen = labels.filter((c) => Number(c.chosen)).length;
+            const done = button('sh-btn sh-btn-primary sh-btn-done', S.rowdone_button, 'check', () => this.doneRow(h, row));
+            done.disabled = !chosen;
+            this.doneBar.appendChild(done);
+            // A low panel: the button says what to do, so the tip line makes room for the answers.
+            this.qs.hidden = (this.rowH || 999) < TIGHT;
+        }
+    }
+
+    /**
+     * When a hazard is finished: a green box with what was chosen and the button to the next hazard.
+     *
+     * @param {object|null} cur the hazard worked on
+     * @param {object|null} h the hazard shown
+     * @param {boolean} viewing
+     * @param {string|null} row
+     */
+    drawNext(cur, h, viewing, row) {
+        this.hNext.replaceChildren();
+        const study = this.mode === 'study';
+        if (!h || (row && !viewing)) {
+            return;
+        }
+        const finished = viewing || (study ? this.studyDone(h) : h.complete);
+        if (!finished) {
+            return;
+        }
+        const box = el('div', 'sh-donebox' + (this.mode === 'test' ? ' is-test' : ''));
+        const head = el('div', 'sh-donebox-head');
+        head.append(tickMark(true, !viewing && this.doneFor !== h), el('h4', '', {text: fmt(S.hcard_done, h.number)}));
+        if (this.mode !== 'test') {
+            // The risk itself is in the footer; the box shows how much of it this hazard's controls removed.
+            head.appendChild(el('span', 'sh-cut', {text: '−' + this.hazardCut(h) + '%'}));
+        }
+        if (this.mode === 'practice') {
+            head.appendChild(this.starRow(this.stars(h), 'sh-donebox-stars'));
+        }
+        this.doneFor = viewing ? this.doneFor : h;
+        box.appendChild(head);
+        const list = el('ul', 'sh-donegrid');
+        ROWS.forEach((r) => {
+            const state = this.rowState(r, null, h, true);
+            const li = el('li', 'sh-donecard sh-donecard-' + r, {style: '--d:' + (120 + ROWS.indexOf(r) * 70) + 'ms'});
+            const k = el('span', 'sh-donecard-key');
+            k.append(icon(r), el('span', '', {text: S['step_' + r]}));
+            const v = el('span', 'sh-donecard-val');
+            v.append(...this.summary(r, h, state === 'skip' ? 'skip' : 'done', (this.rowH || 999) < 480 ? 1 : 2));
+            li.append(k, v);
+            list.appendChild(li);
+        });
+        box.appendChild(list);
+        if (viewing) {
+            box.appendChild(button('sh-btn sh-btn-ghost', fmt(S.hcard_back, cur ? cur.number : 1), 'prev',
+                () => this.focusHazard(cur)));
+        } else {
+            const later = this.scene.spots.slice(this.scene.spots.indexOf(h) + 1);
+            const next = study ? later[0] : later.find((s) => !s.complete);
+            if (next) {
+                box.appendChild(button('sh-btn sh-btn-primary sh-btn-go', fmt(S.hcard_next, next.number), 'next',
+                    () => this.nextHazard(), {after: true}));
+            }
+        }
+        this.hNext.appendChild(box);
+    }
+
+    /**
+     * Study: the step whose answers are shown now (the step of the next right control), or null when all are shown.
+     *
+     * @param {object} h
+     * @returns {string|null}
+     */
+    studyRow(h) {
+        const steps = this.studySteps(h);
+        const shown = this.studyShown(h).length;
+        return shown < steps.length ? steps[shown].kind : null;
+    }
+
+    /**
+     * A step's state for a hazard: now (to work on), done, wait (later) or skip (not needed: eliminated).
+     *
+     * @param {string} r the step
+     * @param {string|null} row the current step
+     * @param {object} h the hazard shown
+     * @param {boolean} viewing whether a finished hazard is looked back at
+     * @returns {string}
+     */
+    rowState(r, row, h, viewing = false) {
+        if (r === 'hazard') {
+            if (this.mode === 'study' || h.found) {
+                return 'done';
+            }
+            return row === 'hazard' ? 'now' : 'wait';
+        }
+        if (this.mode === 'study') {
+            const steps = this.studySteps(h);
+            if (!steps.some((c) => c.kind === r)) {
+                return 'skip';
+            }
+            if (!row) {
+                return 'done';
+            }
+            if (r === row) {
+                return 'now';
+            }
+            return KINDS.indexOf(r) < KINDS.indexOf(row) ? 'done' : 'wait';
+        }
+        if (Number(h.done[r])) {
+            const any = (h.rows[r] || []).some((c) => Number(c.chosen));
+            return r !== 'eliminate' && !any && h.now && h.now.eliminated ? 'skip' : 'done';
+        }
+        return !viewing && row === r ? 'now' : 'wait';
+    }
+
+    /**
+     * An answer: a button with a letter (A, B, …), ticked when right, crossed when wrong. Tapped, or dragged onto the
+     * picture.
      *
      * @param {object} c the label {id, text, ...}
      * @param {string} row
-     * @param {boolean} live whether it can be dragged now
+     * @param {number} index
+     * @param {object} h the hazard
      * @returns {HTMLElement}
      */
-    chip(c, row, live) {
+    chip(c, row, index, h) {
         const study = this.mode === 'study';
-        let cls = 'sh-chip sh-chip-' + row;
-        if (study && row !== 'hazard') {
-            cls += c.correct ? ' is-right' : ' is-wrongans';
-        }
+        const chosen = row !== 'hazard' && Number(c.chosen);
+        const tried = row === 'hazard' && this.tried && this.tried.has(h.id + ':' + c.id);
+        const state = this.chipState(c, chosen, tried);
+        let cls = 'sh-chip sh-opt sh-chip-' + row + (state ? ' ' + state : '');
         if (this.pending && this.pending.has(row + ':' + c.id)) {
             cls += ' is-checking';
         }
-        const node = el('button', cls, {type: 'button', dir: 'auto', disabled: !live || study ? true : null,
-            'data-label': row + ':' + c.id,
-            'aria-pressed': this.picked && this.picked.id === c.id ? 'true' : 'false'});
-        node.appendChild(el('span', 'sh-chip-text', {text: c.text}));
-        if (study && row !== 'hazard') {
-            node.appendChild(el('span', 'sh-chip-mark', {text: c.correct ? '✓' : '✗', 'aria-hidden': 'true'}));
+        const node = el('button', cls, {type: 'button', dir: 'auto', 'data-label': row + ':' + c.id,
+            style: '--d:' + (index * 45) + 'ms', disabled: !study && (chosen || tried) ? true : null});
+        const key = el('span', 'sh-opt-key', {'aria-hidden': 'true'});
+        if (state === 'is-right' || state === 'is-picked') {
+            key.appendChild(tickMark(true, !study && this.fresh === row + ':' + c.id));
+        } else if (state === 'is-wrongans') {
+            key.appendChild(tickMark(false, !study && this.fresh === row + ':' + c.id));
+        } else {
+            key.textContent = String.fromCharCode(65 + (index % 26));
+        }
+        node.append(key, el('span', 'sh-chip-text', {text: c.text}));
+        if (study) {
             node.title = (c.correct ? S.right : S.wrong) + (c.reason ? ': ' + c.reason : '');
             node.setAttribute('aria-label', c.text + '. ' + node.title);
-            node.disabled = false;
             node.addEventListener('click', () => this.feedbackCard({marked: 1, correct: c.correct, reason: c.reason,
                 level: c.level, dl: c.dl, dc: c.dc, eliminates: c.eliminates}, c.text, row));
             return node;
         }
-        if (!live) {
+        if (node.disabled) {
             return node;
         }
+        // A tap places the label on the hazard being worked on.
         node.addEventListener('click', () => {
-            // Tap or keyboard: pick it, then tap the spot (hazards) or the picture (controls).
-            if (this.picked && this.picked.id === c.id && this.picked.row === row) {
-                this.picked = null;
-            } else {
-                this.picked = {id: c.id, row, text: c.text};
-                Sound.play('pickup');
-                this.say(fmt(S.picked, c.text));
-                if (row !== 'hazard') {
-                    this.dropOn(this.active(), this.picked);
-                    return;
-                }
-            }
-            this.box.querySelectorAll('.sh-chip').forEach((n) => n.setAttribute('aria-pressed', 'false'));
-            node.setAttribute('aria-pressed', this.picked ? 'true' : 'false');
-            this.figure.classList.toggle('is-picking', !!this.picked);
+            Sound.play('pickup');
+            this.dropOn(this.active(), {id: c.id, row, text: c.text});
         });
         node.addEventListener('pointerdown', (e) => this.drag(e, node, {id: c.id, row, text: c.text}));
         return node;
+    }
+
+    /**
+     * How an answer looks: right (ticked), wrong (crossed), picked in a test, or still to choose.
+     *
+     * @param {object} c
+     * @param {boolean} chosen
+     * @param {boolean} tried a wrong hazard label already tried on this spot
+     * @returns {string}
+     */
+    chipState(c, chosen, tried) {
+        if (this.mode === 'study') {
+            return c.correct ? 'is-right' : 'is-wrongans';
+        }
+        if (chosen) {
+            if (this.mode === 'test') {
+                return 'is-picked';
+            }
+            return Number(c.correct) ? 'is-right' : 'is-wrongans';
+        }
+        return tried ? 'is-wrongans' : '';
     }
 
     /**
@@ -829,14 +1493,14 @@ class Player {
             if (!under) {
                 return null;
             }
+            const cur = this.active();
             if (label.row === 'hazard') {
+                // A hazard label goes on the spot being worked on.
                 const spot = under.closest('.sh-spot');
-                return spot && this.figure.contains(spot) ? spot : null;
+                return spot && cur && spot.dataset.spot === String(cur.id) ? spot : null;
             }
-            // A control goes on the hazard being worked on: dropped anywhere on the picture, its spot, or the
-            // label box (moved well away from where it started).
-            return this.figure.contains(under) && (!under.closest('.sh-labelbox') || Math.hypot(x - sx, y - sy) > 60)
-                ? this.figure : null;
+            // A control goes on the hazard being worked on: dropped anywhere on the picture.
+            return this.figure.contains(under) ? this.figure : null;
         };
         const move = (ev) => {
             if (!ghost) {
@@ -894,9 +1558,7 @@ class Player {
      * @param {object} label {id, row, text}
      */
     dropOn(spot, label) {
-        this.picked = null;
-        this.figure.classList.remove('is-picking');
-        if (!spot || this.mode === 'study' || (label.row === 'hazard' && spot.found)) {
+        if (!spot || this.mode === 'study' || (label.row === 'hazard' && spot.found) || spot !== this.active()) {
             return;
         }
         const key = label.row + ':' + label.id;
@@ -946,7 +1608,7 @@ class Player {
             this.busy = false;
             if (['alreadyplaced', 'rowsinorder', 'findhazardfirst'].includes(err && err.errorcode)) {
                 // Not an error: the label cannot go there now. Say why, without a dialogue.
-                this.feedback.replaceChildren(el('p', 'sh-fb-test', {text: err.message}));
+                this.setFeedback(el('p', 'sh-fb sh-fb-test', {text: err.message}));
                 return;
             }
             this.error(err);
@@ -1002,19 +1664,35 @@ class Player {
      * @param {object|null} before the hazard's risk before the label
      */
     apply(spot, label, result, before) {
+        const was = !!spot.complete;
+        const step = this.currentRow();
         spot.found = !!result.found;
         spot.done = result.done;
         spot.complete = !!result.complete;
         spot.name = result.name || spot.name;
         spot.now = result.now || spot.now;
+        this.fresh = label ? label.row + ':' + label.id : null;
         if (label) {
             this.markLabel(spot, label, result);
             this.labelFeedback(spot, label, result);
         }
-        if (this.focus && this.focus.complete) {
-            this.focus = null;
+        this.view = null;
+        if (spot.complete && !was) {
+            // The hazard is finished: it stays in the card until the learner moves on.
+            this.hold = spot;
         }
         this.refresh();
+        this.fresh = null;
+        if (this.praiseDue && !spot.complete) {
+            this.praise();
+        }
+        this.praiseDue = false;
+        // A small sound as the cards move on: to the next step, or the hazard is done.
+        if (spot.complete && !was) {
+            this.celebrate(spot, !!result.scenecomplete);
+        } else if (!spot.complete && this.currentRow() !== step) {
+            setTimeout(() => Sound.play('step'), 260);
+        }
         const now = result.now;
         if (now && before && (before.likelihood !== now.likelihood || before.consequence !== now.consequence || now.eliminated)) {
             this.showRisk(spot, true, before);
@@ -1068,12 +1746,27 @@ class Player {
      */
     labelFeedback(spot, label, result) {
         const right = !!result.correct;
+        if (label.row === 'hazard' && result.marked && !right) {
+            // Practice: a wrong hazard label is crossed out for this spot (it may be right for another one).
+            this.tried.add(spot.id + ':' + label.id);
+        }
         if (!result.marked) {
             Sound.play('drop');
-            this.feedback.replaceChildren(el('p', 'sh-fb-test', {text: fmt(S.fb_testsaved, label.text)}));
+            const saved = el('div', 'sh-fb is-saved', {role: 'status'});
+            const head = el('div', 'sh-fb-head');
+            head.append(tickMark(true, true), el('strong', '', {text: S.fb_saved}),
+                el('span', 'sh-fb-label', {dir: 'auto', text: label.text}));
+            saved.appendChild(head);
+            this.setFeedback(saved);
         } else {
             Sound.play(right ? 'correct' : 'wrong');
             this.feedbackCard(result, label.text, label.row);
+            this.streak = right ? this.streak + 1 : 0;
+            if (!right) {
+                this.misses[spot.id] = (this.misses[spot.id] || 0) + 1;
+            } else {
+                this.praiseDue = true;
+            }
             if (!right) {
                 const node = label.row === 'hazard' ? this.spotnodes.get(spot.id) : this.figure;
                 node.classList.remove('is-shake');
@@ -1191,20 +1884,41 @@ class Player {
         const right = !!result.correct;
         const card = el('div', 'sh-fb ' + (right ? 'is-right' : 'is-wrong'), {role: 'status'});
         const head = el('div', 'sh-fb-head');
-        head.append(icon(right ? 'check' : 'cross'), el('strong', '', {text: right ? S.fb_right : S.fb_wrong}),
-            el('span', 'sh-fb-label', {dir: 'auto', text: text}));
-        card.appendChild(head);
-        if (right && row !== 'hazard') {
-            const eff = this.effect(result);
-            card.appendChild(el('p', 'sh-fb-effect', {text: eff || S.fb_nochange}));
+        head.append(tickMark(right, true), el('strong', '', {text: right ? S.fb_right : S.fb_wrong}));
+        if (this.mode === 'study') {
+            // Practice: the answer itself is ticked or crossed in the list, so the card does not repeat it.
+            head.appendChild(el('span', 'sh-fb-label', {dir: 'auto', text: text}));
         }
-        if (right && row === 'hazard') {
-            card.appendChild(el('p', 'sh-fb-effect', {text: S.fb_hazardfound}));
+        card.appendChild(head);
+        // What a right answer did, as small pills: its level and how far it lowered the likelihood and consequence.
+        if (right) {
+            const tags = head;
+            if (row === 'hazard') {
+                tags.appendChild(el('span', 'sh-tagpill is-found', {text: S.fb_hazardfound}));
+            } else if ((row === 'eliminate' || result.level === 'elimination') && !Number(result.eliminates)) {
+                tags.appendChild(el('span', 'sh-tagpill', {text: S.fb_cannot}));
+            } else {
+                if (result.level) {
+                    tags.appendChild(el('span', 'sh-tagpill is-level', {text: S['level_' + result.level] || result.level}));
+                }
+                if (Number(result.eliminates)) {
+                    tags.appendChild(el('span', 'sh-tagpill is-gone', {text: S.fb_removes}));
+                }
+                if (Number(result.dl) && !Number(result.eliminates)) {
+                    tags.appendChild(el('span', 'sh-tagpill is-down', {text: fmt(S.fb_lowers_l, result.dl)}));
+                }
+                if (Number(result.dc) && !Number(result.eliminates)) {
+                    tags.appendChild(el('span', 'sh-tagpill is-down', {text: fmt(S.fb_lowers_c, result.dc)}));
+                }
+                if (!tags.children.length) {
+                    tags.appendChild(el('span', 'sh-tagpill', {text: S.fb_nochange}));
+                }
+            }
         }
         if (result.reason) {
             card.appendChild(el('p', 'sh-fb-reason', {dir: 'auto', text: result.reason}));
         }
-        this.feedback.replaceChildren(card);
+        this.setFeedback(card);
         this.say((right ? S.fb_right : S.fb_wrong) + '. ' + (result.reason || ''));
     }
 
@@ -1233,28 +1947,131 @@ class Player {
      * The scene is finished: the risk of each hazard, then Next.
      */
     sceneDone() {
+        // The pop-up over the picture celebrates; the last hazard's box stays beside it.
+        this.nextbtn.disabled = false;
+        this.nextbtn.classList.add('sh-btn-go');
+        this.nextbtn.focus({preventScroll: true});
+    }
+
+    /**
+     * A short word of praise over the picture after a right answer, with the streak of right answers in a row.
+     */
+    praise() {
+        if (REDUCED) {
+            return;
+        }
+        this.figure.querySelectorAll('.sh-praise').forEach((n) => n.remove());
+        const node = el('div', 'sh-praise', {'aria-hidden': 'true'});
+        node.append(tickMark(true, true), el('span', '', {text: S['praise_' + (1 + Math.floor(Math.random() * 5))]}));
+        if (this.streak >= 3) {
+            node.appendChild(el('span', 'sh-praise-streak', {text: fmt(S.streak, this.streak)}));
+        }
+        this.figure.appendChild(node);
+        setTimeout(() => node.remove(), 1700);
+    }
+
+    /**
+     * How much of a hazard's starting risk is removed, in percent.
+     *
+     * @param {object} h
+     * @returns {number}
+     */
+    hazardCut(h) {
+        const start = h.likelihood * h.consequence;
+        const r = this.mode === 'study' ? this.studyRisk(h) : h.now;
+        if (!r || start <= 1) {
+            return 0;
+        }
+        const now = riskScore(r);
+        return Math.round(Math.max(0, Math.min(100, 100 * (start - Math.max(1, now)) / (start - 1))));
+    }
+
+    /**
+     * Practice: stars for a hazard, from the wrong answers on the way (none: 3, one: 2, more: 1).
+     *
+     * @param {object} h
+     * @returns {number}
+     */
+    stars(h) {
+        const m = this.misses[h.id] || 0;
+        return Math.max(1, 3 - m);
+    }
+
+    /**
+     * Three stars, the earned ones gold.
+     *
+     * @param {number} n
+     * @param {string} cls
+     * @returns {HTMLElement}
+     */
+    starRow(n, cls) {
+        const row = el('span', cls, {role: 'img', 'aria-label': fmt(S.stars_label, n)});
+        [0, 1, 2].forEach((i) => {
+            const star = el('span', i < n ? 'is-on' : '', {style: '--d:' + (200 + i * 120) + 'ms'});
+            star.appendChild(icon('star'));
+            row.appendChild(star);
+        });
+        return row;
+    }
+
+    /**
+     * A hazard (or the whole scene) is done: a pop-up over the picture with the risk cut, stars and confetti.
+     *
+     * @param {object} h
+     * @param {boolean} scene whether the scene is finished too
+     */
+    celebrate(h, scene) {
         const test = this.mode === 'test';
-        const card = el('div', 'sh-scenedone');
-        card.appendChild(el('h4', '', {text: test ? S.scenedone_test : S.scenedone}));
-        if (!test) {
-            const list = el('ul', 'sh-scenedone-list');
-            this.scene.spots.forEach((s) => {
-                const end = s.now ? riskName(s.now) : s.rating;
-                const li = el('li');
-                li.append(el('span', 'sh-scenedone-name', {dir: 'auto', text: s.name}),
-                    el('span', 'sh-rating sh-rating-' + s.rating + ' is-was', {text: S['rating_' + s.rating]}), icon('next'),
-                    el('span', 'sh-rating sh-rating-' + end, {text: S['rating_' + end]}));
-                list.appendChild(li);
-            });
-            card.appendChild(list);
-            if (!REDUCED) {
-                confetti(this.figure, 60);
+        if (this.fbDocked) {
+            this.hideFeedback();
+        }
+        const pic = this.figure.querySelector('.sh-pic');
+        pic.querySelectorAll('.sh-pop').forEach((n) => n.remove());
+        const pop = el('div', 'sh-pop' + (test ? ' is-test' : ''), {role: 'status'});
+        const card = el('div', 'sh-pop-card');
+        card.appendChild(tickMark(true, true));
+        let title = test ? fmt(S.hcard_done, h.number) : S.pop_great;
+        if (this.mode === 'study') {
+            title = fmt(S.pop_learned, h.number);
+        }
+        if (scene) {
+            title = S.scene_pop;
+        }
+        card.appendChild(el('h4', 'sh-pop-title', {text: title}));
+        if (test) {
+            card.appendChild(el('p', 'sh-pop-text', {text: S.pop_saved}));
+        } else {
+            const cut = scene ? Math.round(this.sceneSafety()) : this.hazardCut(h);
+            card.appendChild(el('span', 'sh-pop-big', {text: '−' + cut + '%'}));
+            card.appendChild(el('p', 'sh-pop-text', {text: fmt(scene ? S.scene_pop_cut : S.pop_cut, cut)}));
+            if (this.mode === 'practice') {
+                card.appendChild(this.starRow(scene ? Math.round(this.scene.spots.reduce((a, s) => a + this.stars(s), 0)
+                    / this.scene.spots.length) : this.stars(h), 'sh-pop-stars'));
             }
         }
-        Sound.play('slide');
-        this.feedback.replaceChildren(card);
-        this.nextbtn.disabled = false;
-        this.nextbtn.focus({preventScroll: true});
+        const close = () => {
+            pop.classList.add('is-out');
+            setTimeout(() => pop.remove(), 300);
+        };
+        if (scene) {
+            const last = this.index === this.data.scenes.length - 1;
+            card.appendChild(button('sh-btn sh-btn-primary sh-btn-go', last ? S.finish : S.nextscene, last ? 'flag' : 'next',
+                () => this.nextbtn.click(), {after: !last}));
+        } else {
+            setTimeout(close, 2600);
+        }
+        pop.addEventListener('click', (e) => {
+            if (!e.target.closest('.sh-btn')) {
+                close();
+            }
+        });
+        pop.appendChild(card);
+        pic.appendChild(pop);
+        this.say(title);
+        setTimeout(() => Sound.play(scene ? 'finish' : 'hazarddone'), 200);
+        if (!REDUCED && !test) {
+            confetti(pic, scene ? 140 : 50);
+        }
     }
 
     /**
@@ -1333,6 +2150,7 @@ class Player {
         }
         const before = this.studyRisk(h);
         const steps = this.studySteps(h);
+        const row = this.studyRow(h);
         if (this.studystep < steps.length) {
             const c = steps[this.studystep];
             this.studystep++;
@@ -1345,20 +2163,11 @@ class Player {
         }
         this.refresh();
         this.showRisk(h, true, before);
-        if (this.studyDone(h)) {
-            const index = this.scene.spots.indexOf(h);
-            if (index < this.scene.spots.length - 1) {
-                // On to the next hazard.
-                this.studybtn.disabled = false;
-                this.studybtn.querySelector('span').textContent = S.study_next;
-                this.studybtn.onclick = null;
-                window.setTimeout(() => {
-                    this.studyHazard = index + 1;
-                    this.studystep = 0;
-                    this.focus = null;
-                    this.refresh();
-                }, REDUCED ? 0 : 1600);
-            }
+        const now = this.studyRow(h);
+        if (now !== row && now) {
+            setTimeout(() => Sound.play('step'), 260);
+        } else if (now !== row) {
+            this.celebrate(h, false);
         }
     }
 

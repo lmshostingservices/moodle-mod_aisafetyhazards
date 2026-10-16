@@ -451,6 +451,13 @@ class learning {
                     'rows' => $rows,
                     'voice' => $voice['hazard'][$hid] ?? [],
                 ];
+                if (!$test) {
+                    // How many right labels each row has (not which), so Practice can say "1 of 3 found".
+                    $spot['need'] = array_map(
+                        fn($row) => count(array_filter($row, fn($c) => !empty($c['correct']))),
+                        $h['controls']
+                    );
+                }
                 if ($study || ($p['found'] && !$test)) {
                     $spot['name'] = self::line($h['name'], $context);
                     $spot['why'] = self::para($h['why'], $context);

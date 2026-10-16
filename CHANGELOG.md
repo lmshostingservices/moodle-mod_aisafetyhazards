@@ -2,6 +2,35 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.9] - 2026-10-16
+
+### Changed
+
+- New learner flow: one hazard at a time, in order. Name it, eliminate, reduce, then PPE, and only then "Next: Hazard 2". The four steps are cards under the picture. They tick off as they are done, and slide left to the next hazard's cards.
+- The step being worked on is a coloured question with lettered answer buttons. Right answers get a drawn tick, wrong ones are crossed out, and in Practice dots show how many right answers are found.
+- The hazard to work on bounces on the picture, sends out rings and shows "Hazard n is here". Only that hazard's name is shown on the picture.
+- A start-up pop-up for each mode shows the four steps as icons and how the mode is marked.
+- Game feel:
+  - praise after a right answer, with a streak count;
+  - a "Great job!" pop-up with the risk cut, stars and confetti when a hazard is done;
+  - a "Scene complete!" pop-up at the end of a scene;
+  - new sounds when a card moves on, when the cards slide to the next hazard, and when a hazard is done.
+- A done hazard shows a summary of its four steps as small cards, with the risk cut and the Next button.
+- The gauges, the matrix and "Risk removed" now sit in the slide's footer. The side panel is kept for the question and its answers.
+
+### Fixed
+
+- The slide never goes below the fold.
+  - The picture's size is now measured from the screen, not guessed: the screen height less Moodle's top bar, the title, the step cards and the footer, with 16px kept free above and below.
+  - Full screen uses the whole screen with 16px around it.
+  - The layout follows window resizes and the course drawer opening or closing.
+- The slide keeps the same height from answer to answer, so the page no longer jumps as feedback comes and goes.
+- A short page could not scroll the slide up under the top bar. The player now adds the missing space.
+- On short screens the step cards, the header and the question are compact. The feedback then shows over the step cards and closes after a while, or with ×.
+- Long scene descriptions show two lines with a "More" button. Long answers get a wider side panel.
+- If a list of answers is still too long, only that list scrolls. "Done with this row" and "Next: Hazard n" always stay in view.
+- On narrow windows the slide stacks into one column, with nothing wider than the screen.
+
 ## [v1.0.8] - 2026-10-15
 
 ### Fixed

@@ -2,6 +2,12 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.14] - 2026-10-16
+
+### Changed
+
+- When there is no room for the feedback under the answers, it now shows over the bottom of the picture, not over the step cards. As before, it closes by itself after a while, or with ×.
+
 ## [v1.0.13] - 2026-10-16
 
 ### Fixed

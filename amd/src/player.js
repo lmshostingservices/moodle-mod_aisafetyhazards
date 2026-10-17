@@ -512,8 +512,8 @@ class Player {
     }
 
     /**
-     * Where the feedback shows: under the answers when the hazard card has room for it, otherwise over the step cards
-     * under the picture, where it closes by itself after a while (or with ×), so the answers never need scrolling.
+     * Where the feedback shows: under the answers when the hazard card has room for it, otherwise over the bottom of
+     * the picture, where it closes by itself after a while (or with ×), so the answers never need scrolling.
      */
     placeFeedback() {
         const stacked = !!this.stage.querySelector('.sh-play.is-stacked');
@@ -529,7 +529,7 @@ class Player {
     }
 
     /**
-     * Moves the feedback under the answers or over the step cards.
+     * Moves the feedback under the answers or over the bottom of the picture.
      *
      * @param {boolean} docked
      */
@@ -542,7 +542,8 @@ class Player {
         clearTimeout(this.fbTimer);
         this.feedback.querySelectorAll('.sh-fb-close').forEach((n) => n.remove());
         if (docked) {
-            this.track.parentNode.appendChild(this.feedback);
+            // Over the bottom of the picture, never over the step cards.
+            this.figure.querySelector('.sh-pic').appendChild(this.feedback);
             const first = this.feedback.firstElementChild;
             if (first) {
                 first.appendChild(iconButton('sh-fb-close', S.close, 'cross', () => this.hideFeedback()));

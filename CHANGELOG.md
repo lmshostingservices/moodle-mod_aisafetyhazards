@@ -2,6 +2,12 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.15] - 2026-10-17
+
+### Fixed
+
+- Keep the learner attempt-history table inside a keyboard-accessible horizontal scrolling region on narrow screens, rather than widening the entire page.
+
 ## [v1.0.14] - 2026-10-16
 
 ### Changed

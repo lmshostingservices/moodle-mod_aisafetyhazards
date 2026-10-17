@@ -67,10 +67,12 @@
         {{#hashistory}}
         <section class="sh-panel">
             <h4 class="sh-panel-title">{{#str}} yourattempts, mod_aisafetyhazards {{/str}}</h4>
+            <div class="sh-history-scroll" tabindex="0" role="region" aria-label="{{#str}} yourattempts, mod_aisafetyhazards {{/str}}">
             <table class="table table-sm sh-table">
                 <thead><tr><th scope="col">{{#str}} attempt, mod_aisafetyhazards {{/str}}</th><th scope="col">{{#str}} col_mode, mod_aisafetyhazards {{/str}}</th><th scope="col">{{#str}} score, mod_aisafetyhazards {{/str}}</th><th scope="col">{{#str}} safetyscore, mod_aisafetyhazards {{/str}}</th><th scope="col">{{#str}} date {{/str}}</th></tr></thead>
                 <tbody>{{#history}}<tr><td>{{number}}</td><td>{{mode}}</td><td>{{score}}%</td><td>{{safety}}%</td><td>{{date}}</td></tr>{{/history}}</tbody>
             </table>
+            </div>
         </section>
         {{/hashistory}}
         {{#canmanage}}

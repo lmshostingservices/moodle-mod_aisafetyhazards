@@ -2,6 +2,12 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.16] - 2026-10-17
+
+### Fixed
+
+- Enforce Listen before starting for tap, drag, keyboard answers and row completion until the current scene's entire narration finishes. Stopping playback, blocked playback or audio errors do not unlock answers; Listen can be retried without regeneration or a charge. Scenes without narration remain usable.
+
 ## [v1.0.15] - 2026-10-17
 
 ### Fixed

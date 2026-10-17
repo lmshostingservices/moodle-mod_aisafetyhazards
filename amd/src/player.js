@@ -45,7 +45,7 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'rowhelp_reduce', 'rowhelp_ppe', 'rowwait_hazard', 'rowwait_controls', 'rowdone', 'rowdone_button', 'rowdone_eliminated',
     'likelihood', 'consequence', 'riskrating', 'safetybar', 'safetybar_help', 'progressbar', 'scene_of', 'mode_study',
     'mode_practice', 'mode_test', 'nextscene', 'finish', 'backtohome', 'sounds', 'fullscreen', 'fullscreen_exit',
-    'listen', 'listen_stop', 'spot', 'spot_found', 'activehazard', 'hazard_n', 'controls_applied', 'none_yet',
+    'listen', 'listen_stop', 'listen_required', 'spot', 'spot_found', 'activehazard', 'hazard_n', 'controls_applied', 'none_yet',
     'right', 'wrong', 'fb_right', 'fb_wrong', 'fb_lowers', 'fb_lowers_l', 'fb_lowers_c', 'fb_removes', 'fb_nochange',
     'fb_hazardfound', 'fb_testsaved', 'fb_cannot', 'test_gauges', 'scenedone', 'scenedone_test', 'study_next', 'study_shown',
     'study_wrong', 'study_hazards', 'labelbox', 'drag_help', 'picked', 'dropon',
@@ -227,7 +227,7 @@ class Voice {
      * Plays a list of clip URLs in order.
      *
      * @param {string[]} urls
-     * @param {Function} [onstop] called once when the list ends or is stopped
+     * @param {Function} [onstop] called with true only when every clip ends naturally
      */
     play(urls, onstop = null) {
         this.stop();
@@ -242,7 +242,7 @@ class Voice {
                 return;
             }
             if (i >= urls.length) {
-                this.stop();
+                this.stop(true);
                 return;
             }
             this.audio.src = urls[i++];
@@ -263,8 +263,10 @@ class Voice {
 
     /**
      * Stops playing.
+     *
+     * @param {boolean} completed whether the full queue ended naturally
      */
-    stop() {
+    stop(completed = false) {
         this.token++;
         this.audio.onended = null;
         this.audio.onerror = null;
@@ -272,12 +274,22 @@ class Voice {
         const done = this.onstop;
         this.onstop = null;
         if (done) {
-            done();
+            done(completed);
         }
     }
 }
 
 class Player {
+    /**
+     * Whether answers are waiting for the current scene's complete narration.
+     *
+     * @returns {boolean}
+     */
+    listeningRequired() {
+        return !!(Number(this.config.mustlisten) && this.scene && this.scene.voice &&
+            this.scene.voice.length && !this.listenComplete);
+    }
+
     /**
      * Constructor.
      *
@@ -768,6 +780,7 @@ class Player {
      */
     show(index) {
         this.voice.stop();
+        this.listenComplete = false;
         this.index = index;
         this.scene = this.data.scenes[index];
         this.studystep = 0;
@@ -825,12 +838,20 @@ class Player {
                 }
                 listen.classList.add('is-playing');
                 listen.querySelector('span').textContent = S.listen_stop;
-                this.voice.play(scene.voice, () => {
+                this.voice.play(scene.voice, (completed) => {
                     listen.classList.remove('is-playing');
                     listen.querySelector('span').textContent = S.listen;
+                    if (completed && this.scene === scene) {
+                        this.listenComplete = true;
+                        this.refresh();
+                    }
                 });
             });
             head.appendChild(listen);
+            if (Number(this.config.mustlisten)) {
+                this.listenNotice = el('p', 'sh-voicenote', {text: S.listen_required, role: 'status'});
+                head.appendChild(this.listenNotice);
+            }
         }
         if (scene.voicenote) {
             head.appendChild(el('p', 'sh-voicenote', {text: scene.voicenote}));
@@ -1238,9 +1259,18 @@ class Player {
             }));
         this.progress.hidden = study;
         this.studybtn.hidden = !study;
-        this.nextbtn.disabled = !study && !scene.complete;
+        this.nextbtn.disabled = this.listeningRequired() || (!study && !scene.complete);
+        this.studybtn.disabled = this.listeningRequired();
+        if (this.listenNotice) {
+            this.listenNotice.hidden = !this.listeningRequired();
+        }
+        if (this.listeningRequired()) {
+            this.stage.querySelectorAll('.sh-chip, .sh-btn-done').forEach((node) => {
+                node.disabled = true;
+            });
+        }
         if (study) {
-            this.studybtn.disabled = !cur || this.studyDone(cur);
+            this.studybtn.disabled = this.listeningRequired() || !cur || this.studyDone(cur);
         }
         this.fit();
     }
@@ -1563,6 +1593,9 @@ class Player {
      * @param {object} label
      */
     drag(e, node, label) {
+        if (this.listeningRequired()) {
+            return;
+        }
         if (e.button > 0) {
             return;
         }
@@ -1640,6 +1673,9 @@ class Player {
      * @param {object} label {id, row, text}
      */
     dropOn(spot, label) {
+        if (this.listeningRequired()) {
+            return;
+        }
         if (!spot || this.mode === 'study' || (label.row === 'hazard' && spot.found) || spot !== this.active()) {
             return;
         }
@@ -1709,6 +1745,9 @@ class Player {
      * @param {string} row
      */
     doneRow(spot, row) {
+        if (this.listeningRequired()) {
+            return;
+        }
         const scene = this.scene;
         // After any label still being marked, so the row ends with every label the learner chose.
         this.queue = (this.queue || Promise.resolve()).then(() => this.endRow(scene, spot, row)).catch((err) => this.error(err));
@@ -2232,6 +2271,9 @@ class Player {
      * Study: shows the next right control (then the next hazard).
      */
     studyStep() {
+        if (this.listeningRequired()) {
+            return;
+        }
         const h = this.active();
         if (!h) {
             return;

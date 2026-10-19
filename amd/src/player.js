@@ -48,7 +48,8 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'listen', 'listen_stop', 'spot', 'spot_found', 'activehazard', 'hazard_n', 'controls_applied', 'none_yet',
     'right', 'wrong', 'fb_right', 'fb_wrong', 'fb_lowers', 'fb_lowers_l', 'fb_lowers_c', 'fb_removes', 'fb_nochange',
     'fb_hazardfound', 'fb_testsaved', 'fb_cannot', 'test_gauges', 'scenedone', 'scenedone_test', 'study_show',
-    'study_next_step', 'study_finish', 'study_answer', 'study_answers', 'study_guess_right', 'study_guess_wrong', 'study_nothazard',
+    'study_next_step', 'study_finish', 'study_answer', 'study_answers', 'study_guess_right', 'study_guess_wrong',
+    'study_nothazard', 'study_empty', 'study_card_empty',
     'study_wrong', 'study_hazards', 'labelbox', 'drag_help', 'picked', 'dropon',
     'result_title', 'result_score', 'result_safety', 'result_right', 'result_wrong', 'result_passed', 'result_notpassed',
     'result_passmark', 'result_missed', 'result_wrongchosen', 'result_labelled', 'result_perfect', 'result_start', 'result_end',
@@ -1163,6 +1164,9 @@ class Player {
      */
     hint(r, h) {
         if (this.mode === 'study') {
+            if (this.studyEmpty(h, r)) {
+                return S.study_empty;
+            }
             return this.srev ? S.hint_study_after : S.hint_study_guess;
         }
         if (r === 'hazard') {
@@ -1310,6 +1314,9 @@ class Player {
         let chosen = (h.rows[r] || []).filter((c) => Number(c.chosen) && (Number(c.correct) || this.mode === 'test'));
         if (this.mode === 'study') {
             chosen = this.studyShown(h).filter((c) => c.kind === r);
+            if (this.studyEmpty(h, r) && state !== 'wait') {
+                return [el('span', 'sh-stepcard-note', {text: S.study_card_empty})];
+            }
         }
         if (state === 'wait' && !chosen.length) {
             return [];
@@ -1464,9 +1471,6 @@ class Player {
         if (this.mode === 'study') {
             if (r === row) {
                 return 'now';
-            }
-            if (r !== 'hazard' && !(h.rows[r] || []).length) {
-                return 'skip';
             }
             return this.studyRevealed(h, r) ? 'done' : 'wait';
         }
@@ -2183,13 +2187,24 @@ class Player {
     }
 
     /**
-     * Study: the steps of a hazard in order: name it, then each step that has answers.
+     * Study: the steps of every hazard in order: name it, eliminate, reduce, PPE.
      *
-     * @param {object} h
      * @returns {string[]}
      */
-    studyPlan(h) {
-        return ROWS.filter((r) => r === 'hazard' || (h.rows[r] || []).length);
+    studyPlan() {
+        // Every hazard goes through all four steps, even once eliminated: the elimination may not be approved.
+        return ROWS;
+    }
+
+    /**
+     * Study: whether a step of a hazard has no answers written (older content).
+     *
+     * @param {object} h
+     * @param {string} r
+     * @returns {boolean}
+     */
+    studyEmpty(h, r) {
+        return r !== 'hazard' && !(h.rows[r] || []).length;
     }
 
     /**
@@ -2208,7 +2223,7 @@ class Player {
         if (this.sfin) {
             return true;
         }
-        const at = this.studyPlan(h).indexOf(r);
+        const at = this.studyPlan().indexOf(r);
         return at >= 0 && (at < this.sidx || (at === this.sidx && this.srev));
     }
 
@@ -2222,7 +2237,7 @@ class Player {
         if (this.scene.spots.indexOf(h) !== (this.studyHazard || 0) || this.sfin) {
             return null;
         }
-        return this.studyPlan(h)[this.sidx] || null;
+        return this.studyPlan()[this.sidx] || null;
     }
 
     /**
@@ -2295,10 +2310,10 @@ class Player {
      * @returns {HTMLElement}
      */
     studyButton(h) {
-        const plan = this.studyPlan(h);
+        const plan = this.studyPlan();
         let text = S.study_show;
         let ic = 'eye';
-        if (this.srev) {
+        if (this.srev || this.studyEmpty(h, plan[this.sidx])) {
             const next = plan[this.sidx + 1];
             text = next ? fmt(S.study_next_step, S['step_' + next]) : S.study_finish;
             ic = next ? 'next' : 'check';
@@ -2341,14 +2356,14 @@ class Player {
             return;
         }
         const before = this.studyRisk(h);
-        if (!this.srev) {
+        if (!this.srev && !this.studyEmpty(h, row)) {
             this.srev = true;
             this.sfresh = true;
             Sound.play('drop');
             this.studyCard(h, row);
         } else {
             this.sguess = null;
-            if (this.sidx + 1 < this.studyPlan(h).length) {
+            if (this.sidx + 1 < this.studyPlan().length) {
                 this.sidx++;
                 this.srev = false;
                 this.setFeedback();

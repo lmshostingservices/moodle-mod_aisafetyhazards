@@ -68,6 +68,11 @@ final class manager_test extends \advanced_testcase {
         $bad[0]['controls']['ppe'] = [];
         $this->assertFalse(manager::hazards_ok($bad), 'A hazard that stays needs a PPE row.');
         $bad = $hazards;
+        $bad[1]['controls']['reduce'] = [];
+        $bad[1]['controls']['ppe'] = [];
+        $this->assertFalse(manager::hazards_ok($bad), 'An eliminated hazard still needs Reduce and PPE (it may not be approved).');
+        $this->assertTrue(manager::hazards_ok($bad, true), 'Older scenes like this still play.');
+        $bad = $hazards;
         $bad[2]['controls']['eliminate'][1]['correct'] = 1;
         $this->assertFalse(manager::hazards_ok($bad), 'One right elimination only.');
         $bad = $hazards;

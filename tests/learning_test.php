@@ -193,7 +193,7 @@ final class learning_test extends \advanced_testcase {
             )
         );
 
-        // The truck: the right elimination removes the hazard and its other rows.
+        // The truck: the right elimination removes the hazard, but Reduce and PPE still follow (it may not be approved).
         $hid = (int)$truck['id'];
         learning::drop($instance, $context, $attempt, $sceneid, 'hazard', $hid, $hid);
         $r = learning::drop(
@@ -211,7 +211,7 @@ final class learning_test extends \advanced_testcase {
         );
         $this->assertSame([0, 0], [$r['correct'], $r['done']['eliminate']], 'Practice: try again until it is right.');
         $r = learning::drop($instance, $context, $attempt, $sceneid, 'eliminate', $hid, $this->control($truck, 'eliminate'));
-        $this->assertSame([1, 'eliminated', 1], [$r['eliminates'], $r['now']['rating'], $r['complete']]);
+        $this->assertSame([1, 'eliminated', 0], [$r['eliminates'], $r['now']['rating'], $r['complete']]);
 
         $this->expect_error('scenesleft', fn() => learning::finish_attempt($instance, $cm, $course, $context, $attempt));
         // The generator plays the rest right.
@@ -221,9 +221,9 @@ final class learning_test extends \advanced_testcase {
             (int)$attempt->id
         );
         $summary = learning::finish_attempt($instance, $cm, $course, $context, $attempt);
-        // Needed 13 (find and eliminate each hazard, 4 trench controls, 3 fall controls); 4 wrong.
-        $this->assertSame([13, 13, 4], [$summary['needed'], $summary['right'], $summary['wrong']]);
-        $this->assertSame(76, $summary['score']);
+        // Needed 15 (find and eliminate each hazard, 4 trench, 2 truck and 3 fall controls); 4 wrong.
+        $this->assertSame([15, 15, 4], [$summary['needed'], $summary['right'], $summary['wrong']]);
+        $this->assertSame(79, $summary['score']);
         $this->assertSame(100, $summary['safety']);
         $recap = $summary['recap'][0]['hazards'];
         $this->assertSame(['extreme', 'low'], [$recap[0]['start'], $recap[0]['end']]);
@@ -232,7 +232,7 @@ final class learning_test extends \advanced_testcase {
         $this->assertCount(1, $recap[0]['wrong']);
         $this->assertSame(0, $recap[0]['perfect']);
         $this->assertSame(1, $recap[2]['perfect']);
-        $this->assertEquals(76.47, (float)$DB->get_field('aisafetyhazards_attempt', 'score', ['id' => $attempt->id]));
+        $this->assertEquals(78.95, (float)$DB->get_field('aisafetyhazards_attempt', 'score', ['id' => $attempt->id]));
         $this->expect_error(
             'attemptfinished',
             fn() => learning::drop(
@@ -258,18 +258,7 @@ final class learning_test extends \advanced_testcase {
         $sceneid = (int)$scenes[0]->id;
         [, $truck] = $this->hazards($sceneid);
         $hid = (int)$truck['id'];
-        $rows = [
-            ['reduce', 'Use a spotter when the truck reverses', 1, 'administrative', 2, 0],
-            ['reduce', 'Ask the driver to go faster', 0, 'administrative', 0, 0],
-            ['ppe', 'High-visibility vest', 1, 'ppe', 1, 0],
-            ['ppe', 'Ear plugs', 0, 'ppe', 0, 0],
-        ];
-        foreach ($rows as $n => [$kind, $text, $correct, $level, $dl, $dc]) {
-            $DB->insert_record('aisafetyhazards_control', (object)['hazardid' => $hid, 'sortorder' => 10 + $n,
-                'kind' => $kind, 'text' => $text, 'correct' => $correct, 'eliminates' => 0, 'level' => $level,
-                'dl' => $dl, 'dc' => $dc, 'reason' => 'Because.']);
-        }
-        [, $truck] = $this->hazards($sceneid);
+        // The fixture's truck can be eliminated, and still has Reduce and PPE rows.
         $data = learning::start_attempt($instance, $context, (int)$student->id, 'practice');
         $attempt = $DB->get_record('aisafetyhazards_attempt', ['id' => $data['attemptid']]);
         learning::drop($instance, $context, $attempt, $sceneid, 'hazard', $hid, $hid);
@@ -285,6 +274,33 @@ final class learning_test extends \advanced_testcase {
         $this->assertSame(1, $r['now']['eliminated']);
         $r = learning::drop($instance, $context, $attempt, $sceneid, 'ppe', $hid, $this->control($truck, 'ppe'));
         $this->assertSame([1, 1, 1], [$r['correct'], $r['done']['ppe'], $r['complete']]);
+    }
+
+    /**
+     * Answers the teacher adds after an attempt started still show in it (an eliminated hazard gets Reduce and PPE).
+     */
+    public function test_answers_added_later_show_in_attempt(): void {
+        global $DB;
+        $this->resetAfterTest();
+        [, , $context, $instance, $student, $scenes] = $this->setup_activity();
+        $sceneid = (int)$scenes[0]->id;
+        [, $truck] = $this->hazards($sceneid);
+        $hid = (int)$truck['id'];
+        $data = learning::start_attempt($instance, $context, (int)$student->id, 'study');
+        $attempt = $DB->get_record('aisafetyhazards_attempt', ['id' => $data['attemptid']]);
+        $rows = function () use ($instance, $context, $attempt, $hid): array {
+            $scene = learning::player_data($instance, $context, $attempt)['scenes'][0];
+            $spot = array_values(array_filter($scene['spots'], fn($s) => $s['id'] === $hid))[0];
+            return $spot['rows'];
+        };
+        $before = count($rows()['reduce']);
+        $id = $DB->insert_record('aisafetyhazards_control', (object)['hazardid' => $hid, 'sortorder' => 99,
+            'kind' => 'reduce', 'text' => 'Use a spotter', 'correct' => 1, 'eliminates' => 0, 'level' => 'administrative',
+            'dl' => 2, 'dc' => 0, 'reason' => 'Because.']);
+        $after = $rows()['reduce'];
+        $this->assertCount($before + 1, $after);
+        $this->assertSame((int)$id, end($after)['id'], 'The new answer goes at the end.');
+        $this->assertSame(1, (int)end($after)['correct'], 'Study shows whether it is right.');
     }
 
     /**
@@ -336,7 +352,7 @@ final class learning_test extends \advanced_testcase {
         $this->expect_error('rowsinorder', fn() => learning::done_row($instance, $context, $attempt, $sceneid, $tid, 'reduce'));
         $r = learning::done_row($instance, $context, $attempt, $sceneid, $tid, 'ppe');
         $this->assertSame(1, $r['complete']);
-        // The truck: a wrong elimination ends its rows too (it could have been removed).
+        // The truck: after a wrong elimination, Reduce and PPE are still to do.
         $hid = (int)$truck['id'];
         learning::drop($instance, $context, $attempt, $sceneid, 'hazard', $hid, $hid);
         $r = learning::drop(
@@ -352,23 +368,25 @@ final class learning_test extends \advanced_testcase {
                 false
             )
         );
-        $this->assertSame(1, $r['complete']);
+        $this->assertSame(0, $r['complete']);
         $attempt = $this->getDataGenerator()->get_plugin_generator('mod_aisafetyhazards')->play_attempt(
             $instance,
             $context,
             (int)$attempt->id
         );
         $summary = learning::finish_attempt($instance, $cm, $course, $context, $attempt);
-        // Right: trench elimination and shoring, fall 5 = 7 (plus the truck found); wrong: distractor, truck elimination.
-        $this->assertSame([13, 8, 2], [$summary['needed'], $summary['right'], $summary['wrong']]);
-        $this->assertSame(53, $summary['score']);
+        // Right: trench elimination and shoring, truck Reduce and PPE, fall 5 (plus the truck found); wrong: distractor,
+        // truck elimination.
+        $this->assertSame([15, 10, 2], [$summary['needed'], $summary['right'], $summary['wrong']]);
+        $this->assertSame(59, $summary['score']);
         $this->assertSame(0, $summary['passed']);
         $recap = $summary['recap'][0]['hazards'];
         $this->assertSame('Hot work sparks', $recap[0]['labelled']);
         $this->assertCount(3, $recap[0]['missed']);
-        $this->assertSame('extreme', $recap[1]['end']);
-        // Safety: trench 20 → 5 (of 17 possible), truck 15 → 15 (of 15), fall 12 → 4 (of 8): 23 of 40.
-        $this->assertSame(58, $summary['safety']);
+        // Not eliminated, but the spotter and the vest still lowered the truck's risk.
+        $this->assertSame('medium', $recap[1]['end']);
+        // Safety: trench 20 → 5 (of 17 possible), truck 15 → 5 (of 15), fall 12 → 4 (of 8): 33 of 40.
+        $this->assertSame(83, $summary['safety']);
         $this->assertSame('', $summary['next']);
     }
 
@@ -400,7 +418,7 @@ final class learning_test extends \advanced_testcase {
         $data = learning::start_attempt($instance, $context, (int)$student->id, 'test');
         $attempt = $plugin->play_attempt($instance, $context, (int)$data['attemptid']);
         $summary = learning::finish_attempt($instance, $cm, $course, $context, $attempt);
-        $this->assertSame([100, 100, 1, 26], [$summary['score'], $summary['safety'], $summary['passed'], $summary['needed']]);
+        $this->assertSame([100, 100, 1, 30], [$summary['score'], $summary['safety'], $summary['passed'], $summary['needed']]);
     }
 
     /**
@@ -426,8 +444,8 @@ final class learning_test extends \advanced_testcase {
                 'practice'
             )
         );
-        // With mistakes: 13 right of 13 needed, 3 wrong (a distractor and two wrong reduce labels).
-        $expected = [manager::GRADE_HIGHEST => 100, manager::GRADE_AVERAGE => 90.625, manager::GRADE_FIRST => 81.25,
+        // With mistakes: 15 right of 15 needed, 3 wrong (a distractor and two wrong reduce labels).
+        $expected = [manager::GRADE_HIGHEST => 100, manager::GRADE_AVERAGE => 89.475, manager::GRADE_FIRST => 78.95,
             manager::GRADE_LAST => 100];
         foreach ($expected as $method => $grade) {
             $instance->grademethod = $method;

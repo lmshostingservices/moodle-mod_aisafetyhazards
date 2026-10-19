@@ -73,7 +73,7 @@ final class lesson_test extends \advanced_testcase {
             [$truck['controls']['eliminate'][0]['correct'],
             $truck['controls']['eliminate'][0]['eliminates'], $truck['controls']['eliminate'][0]['level']]
         );
-        $this->assertSame([], $truck['controls']['reduce']);
+        $this->assertCount(2, $truck['controls']['reduce'], 'An eliminated hazard still has a Reduce row.');
         foreach (['nothing', '{"scenes": []}'] as $bad) {
             try {
                 lesson::parse($bad);

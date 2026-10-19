@@ -267,13 +267,14 @@ class manager {
     /**
      * Whether a scene's hazards are complete: exactly three hazards in the picture with a name, at most two
      * distractors, and for each hazard an eliminate row with exactly one right answer, a reduce row and a PPE row each
-     * with at least one right answer (older content: a hazard its right answer removes may have neither). Rows have 2 to
-     * 5 labels.
+     * with at least one right answer, even when the elimination removes the hazard (it may not be approved). Rows have
+     * 2 to 5 labels.
      *
      * @param array $hazards from {@see self::scene_hazards()} or a cleaned draft
+     * @param bool $older true only to keep playing a scene saved before every hazard needed reduce and PPE rows
      * @return bool
      */
-    public static function hazards_ok(array $hazards): bool {
+    public static function hazards_ok(array $hazards, bool $older = false): bool {
         $real = array_values(array_filter($hazards, fn($h) => empty($h['distractor'])));
         $distractors = count($hazards) - count($real);
         if (count($real) !== catalogue::HAZARDS || $distractors > self::MAX_DISTRACTORS) {
@@ -293,9 +294,9 @@ class manager {
             }
             foreach (['reduce', 'ppe'] as $kind) {
                 $row = array_values((array)($rows[$kind] ?? []));
-                if (!$row && !empty($right[0]['eliminates'])) {
-                    // Older content: a hazard that can be eliminated may have no reduce or PPE row (the player then
-                    // skips it). New drafts and imports have both rows for every hazard.
+                if (!$row && $older && !empty($right[0]['eliminates'])) {
+                    // Older content may have no reduce or PPE row for a hazard that can be eliminated. It still plays,
+                    // but it cannot be saved like that: the elimination may not be approved, so learners need both rows.
                     continue;
                 }
                 $count = count(array_filter($row, fn($c) => !empty($c['correct'])));
@@ -333,7 +334,10 @@ class manager {
      * @return bool
      */
     public static function scene_ready(\context $context, stdClass $scene): bool {
-        return self::get_scene_file($context, (int)$scene->id) !== null && self::hazards_ok(self::scene_hazards((int)$scene->id));
+        return self::get_scene_file($context, (int)$scene->id) !== null && self::hazards_ok(
+            self::scene_hazards((int)$scene->id),
+            true
+        );
     }
 
     /**

@@ -422,7 +422,14 @@ class learning {
                         $byid[(int)$c['id']] = $c;
                     }
                     $labels = [];
-                    foreach ($item['rows'][$hid][$kind] ?? [] as $cid) {
+                    // The attempt keeps its label order; answers the teacher added after it started go at the end.
+                    $ids = array_map('intval', $item['rows'][$hid][$kind] ?? []);
+                    foreach (array_keys($byid) as $cid) {
+                        if (!in_array($cid, $ids, true)) {
+                            $ids[] = $cid;
+                        }
+                    }
+                    foreach ($ids as $cid) {
                         if (!isset($byid[$cid])) {
                             continue;
                         }

@@ -2,6 +2,15 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.18] - 2026-10-19
+
+### Fixed
+
+- Study no longer stops after Eliminate. Every hazard goes through all four steps, even when the right answer eliminates it, because the elimination may not be approved. Older scenes may have no Reduce or PPE answers for an eliminated hazard. Study still shows those steps, with "No answers have been written for this step yet", and the editor warns the teacher.
+- A scene can no longer be saved, imported or drafted without Reduce and PPE answers for every hazard, including hazards that can be eliminated. The setup checklist now lists older scenes like this as incomplete, so the teacher can add the missing answers. Learners can still play these scenes in the meantime.
+- In Practice, the step cards of an older empty row now say "No answers yet" instead of "Nothing to choose".
+- Answers that a teacher adds after a learner has started an attempt now appear in that attempt. They are placed after the existing answers. Before, an attempt only showed the answers that existed when it started.
+
 ## [v1.0.17] - 2026-10-19
 
 The release pipeline already holds a different 1.0.16 build, so these changes ship as 1.0.17.

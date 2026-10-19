@@ -24,6 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['listen_required'] = 'Listen to the complete narration before answering. If playback stops or fails, press Listen to try again. Playing saved narration costs no credits.';
+
 $string['act_access'] = 'Access';
 $string['act_balance'] = 'Balance';
 $string['act_balance_unknown'] = 'Unknown (check access to update)';

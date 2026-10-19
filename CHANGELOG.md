@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.0.19] - 2026-10-19
+
+### Fixed
+
+- Restore the required narration-completion lock for tap, drag, keyboard answers, row completion and the new Study controls. Stopping playback or an audio failure does not unlock answers. Retry saved narration without another generation charge. Scenes without narration remain usable.
+- Preserve the 1.0.18 Study flow, mandatory Reduce and PPE rows and compatibility with older scenes and attempts.
+
 All notable changes to mod_aisafetyhazards are recorded here.
 
 ## [v1.0.18] - 2026-10-19

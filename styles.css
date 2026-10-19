@@ -4237,3 +4237,60 @@
     color: var(--sh-warning);
     font-weight: 600;
 }
+
+/* Study: a guided walkthrough driven by one big button in the hazard card. */
+.path-mod-aisafetyhazards .sh-btn-study {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: .95rem;
+}
+.path-mod-aisafetyhazards .sh-btn-study[data-study="show"] {
+    animation: sh-studyglow 2.4s ease-in-out 1s infinite;
+}
+
+@keyframes sh-studyglow {
+    0%,
+    100% {
+        box-shadow: 0 4px 12px -6px rgba(79, 70, 229, .6);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, .18), 0 6px 16px -6px rgba(79, 70, 229, .7);
+    }
+}
+.path-mod-aisafetyhazards .sh-chip.sh-opt.is-guess {
+    border-color: rgba(79, 70, 229, .55);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, .2);
+}
+.path-mod-aisafetyhazards .sh-tagpill.is-miss {
+    border-color: rgba(247, 144, 9, .4);
+    background: #fffaeb;
+    color: #b54708;
+}
+.path-mod-aisafetyhazards .sh-fb-answers {
+    display: grid;
+    gap: 6px;
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.path-mod-aisafetyhazards .sh-fb-answer-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+.path-mod-aisafetyhazards .sh-fb-answer-head .sh-fb-label {
+    margin-right: 2px;
+    color: var(--sh-text);
+    font-weight: 700;
+}
+.path-mod-aisafetyhazards .sh-play.is-tight .sh-btn-study {
+    min-height: 36px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .path-mod-aisafetyhazards .sh-btn-study[data-study="show"] {
+        animation: none;
+    }
+}

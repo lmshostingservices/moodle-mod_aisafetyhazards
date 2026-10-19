@@ -24,8 +24,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['listen_required'] = 'Listen to the complete narration before answering. If playback stops or fails, press Listen to try again. Playing saved narration costs no credits.';
-
 $string['act_access'] = 'Access';
 $string['act_balance'] = 'Balance';
 $string['act_balance_unknown'] = 'Unknown (check access to update)';
@@ -415,7 +413,8 @@ $string['hint_ppe_practice'] = 'Tap every item needed.';
 $string['hint_ppe_test'] = 'Tap all you think are right, then press Done.';
 $string['hint_reduce_practice'] = 'Tap every right control.';
 $string['hint_reduce_test'] = 'Tap all you think are right, then press Done.';
-$string['hint_study'] = 'Tap any answer to see why.';
+$string['hint_study_after'] = 'Tap any answer to see why it is right or wrong.';
+$string['hint_study_guess'] = 'Have a guess, then press Show the answer.';
 $string['howto_eliminate'] = 'Choose how to eliminate it, if that is reasonably practicable.';
 $string['howto_hazard'] = 'Drag each hazard onto its spot in the picture.';
 $string['howto_ppe'] = 'Choose the PPE required.';
@@ -461,7 +460,7 @@ $string['industry'] = 'Industry';
 $string['intro_close'] = 'Got it, let\'s start';
 $string['intro_lead'] = 'For each hazard, do 4 steps in order:';
 $string['intro_note_practice'] = 'Answers are marked at once. A wrong one is crossed out: try again.';
-$string['intro_note_study'] = 'The answers are shown: ✓ right, ✗ wrong. Tap one to see why.';
+$string['intro_note_study'] = 'Study walks you through each hazard. Have a guess at each step, then press Show the answer to see the right answers and why.';
 $string['intro_note_test'] = 'Nothing is marked until the end. For Reduce and PPE, tap all you think are right, then Done.';
 $string['intro_step_eliminate'] = 'Remove it, if you can';
 $string['intro_step_hazard'] = 'Name it at the flashing spot';
@@ -831,10 +830,16 @@ $string['step_ppe'] = 'PPE';
 $string['step_reduce'] = 'Reduce';
 $string['steps_label'] = 'The four steps for this hazard';
 $string['streak'] = '{$a} in a row';
+$string['study_answer'] = 'The answer';
+$string['study_answers'] = 'The answers';
+$string['study_finish'] = 'Finish this hazard';
+$string['study_guess_right'] = 'You guessed right';
+$string['study_guess_wrong'] = 'Not your guess';
 $string['study_hazards'] = 'Hazards in this picture';
 $string['study_intro'] = 'See every hazard and the right controls, step by step, with how each one changes the risk.';
-$string['study_next'] = 'Show the next answer';
-$string['study_shown'] = 'Shown';
+$string['study_next_step'] = 'Next: {$a}';
+$string['study_nothazard'] = 'Not this hazard. Look at the spot again.';
+$string['study_show'] = 'Show the answer';
 $string['study_wrong'] = 'Tap any label to see why it is right or wrong.';
 $string['studymode'] = 'Study';
 $string['studymode_desc'] = 'Learners see every hazard and the right controls with their effect, step by step';

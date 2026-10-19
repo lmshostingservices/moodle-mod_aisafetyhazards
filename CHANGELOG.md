@@ -2,11 +2,17 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
-## [v1.0.16] - 2026-10-17
+## [v1.0.17] - 2026-10-19
 
-### Fixed
+The release pipeline already holds a different 1.0.16 build, so these changes ship as 1.0.17.
 
-- Enforce Listen before starting for tap, drag, keyboard answers and row completion until the current scene's entire narration finishes. Stopping playback, blocked playback or audio errors do not unlock answers; Listen can be retried without regeneration or a charge. Scenes without narration remain usable.
+### Changed
+
+- Study is now a guided walkthrough. Each hazard goes through every step in order: Name it, Eliminate, Reduce, then PPE. At each step the answers are shown without ticks or crosses. The learner can tap one as a guess, then presses **Show the answer**.
+- Revealing a step ticks the right answers and crosses the wrong ones. A card lists each right answer with its control level, its effect on likelihood and consequence, and why it is right. The gauges then drop once.
+- The one large button in the hazard card names the next action each time: **Next: Reduce**, **Next: PPE**, **Finish this hazard**, then **Next: Hazard 2**. The separate "Show the next answer" button in the footer has been removed.
+- After an elimination, Study asks the Reduce and PPE questions for the case where the elimination is not approved, as Practice and Test do.
+- Practice and Test are unchanged.
 
 ## [v1.0.15] - 2026-10-17
 

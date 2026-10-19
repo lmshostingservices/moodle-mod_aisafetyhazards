@@ -45,9 +45,10 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'rowhelp_reduce', 'rowhelp_ppe', 'rowwait_hazard', 'rowwait_controls', 'rowdone', 'rowdone_button', 'rowdone_eliminated',
     'likelihood', 'consequence', 'riskrating', 'safetybar', 'safetybar_help', 'progressbar', 'scene_of', 'mode_study',
     'mode_practice', 'mode_test', 'nextscene', 'finish', 'backtohome', 'sounds', 'fullscreen', 'fullscreen_exit',
-    'listen', 'listen_stop', 'listen_required', 'spot', 'spot_found', 'activehazard', 'hazard_n', 'controls_applied', 'none_yet',
+    'listen', 'listen_stop', 'spot', 'spot_found', 'activehazard', 'hazard_n', 'controls_applied', 'none_yet',
     'right', 'wrong', 'fb_right', 'fb_wrong', 'fb_lowers', 'fb_lowers_l', 'fb_lowers_c', 'fb_removes', 'fb_nochange',
-    'fb_hazardfound', 'fb_testsaved', 'fb_cannot', 'test_gauges', 'scenedone', 'scenedone_test', 'study_next', 'study_shown',
+    'fb_hazardfound', 'fb_testsaved', 'fb_cannot', 'test_gauges', 'scenedone', 'scenedone_test', 'study_show',
+    'study_next_step', 'study_finish', 'study_answer', 'study_answers', 'study_guess_right', 'study_guess_wrong', 'study_nothazard',
     'study_wrong', 'study_hazards', 'labelbox', 'drag_help', 'picked', 'dropon',
     'result_title', 'result_score', 'result_safety', 'result_right', 'result_wrong', 'result_passed', 'result_notpassed',
     'result_passmark', 'result_missed', 'result_wrongchosen', 'result_labelled', 'result_perfect', 'result_start', 'result_end',
@@ -55,7 +56,8 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'rating_low', 'rating_medium', 'rating_high', 'rating_extreme', 'rating_eliminated', 'gauge_value',
     'hcard_title', 'hcard_unknown', 'hcard_done', 'hcard_next', 'hcard_back', 'step_hazard', 'step_eliminate', 'step_reduce',
     'step_ppe', 'hint_hazard', 'hint_eliminate', 'hint_reduce_practice', 'hint_ppe_practice', 'hint_reduce_test',
-    'hint_ppe_test', 'hint_study', 'intro_close', 'intro_lead', 'intro_then', 'card_now', 'card_skip', 'step_n',
+    'hint_ppe_test', 'hint_study_guess', 'hint_study_after', 'intro_close', 'intro_lead', 'intro_then', 'card_now',
+    'card_skip', 'step_n',
     'found_of', 'praise_1', 'praise_2', 'praise_3', 'praise_4', 'praise_5', 'streak', 'pop_great', 'pop_cut',
     'pop_saved', 'pop_learned', 'scene_pop', 'scene_pop_cut', 'stars_label', 'hazards',
     'hazards_done', 'hazard_here', 'steps_label', 'fb_saved', 'more', 'less', 'close', 'test_gauges_short', 'risk_title',
@@ -227,7 +229,7 @@ class Voice {
      * Plays a list of clip URLs in order.
      *
      * @param {string[]} urls
-     * @param {Function} [onstop] called with true only when every clip ends naturally
+     * @param {Function} [onstop] called once when the list ends or is stopped
      */
     play(urls, onstop = null) {
         this.stop();
@@ -242,7 +244,7 @@ class Voice {
                 return;
             }
             if (i >= urls.length) {
-                this.stop(true);
+                this.stop();
                 return;
             }
             this.audio.src = urls[i++];
@@ -263,10 +265,8 @@ class Voice {
 
     /**
      * Stops playing.
-     *
-     * @param {boolean} completed whether the full queue ended naturally
      */
-    stop(completed = false) {
+    stop() {
         this.token++;
         this.audio.onended = null;
         this.audio.onerror = null;
@@ -274,22 +274,12 @@ class Voice {
         const done = this.onstop;
         this.onstop = null;
         if (done) {
-            done(completed);
+            done();
         }
     }
 }
 
 class Player {
-    /**
-     * Whether answers are waiting for the current scene's complete narration.
-     *
-     * @returns {boolean}
-     */
-    listeningRequired() {
-        return !!(Number(this.config.mustlisten) && this.scene && this.scene.voice &&
-            this.scene.voice.length && !this.listenComplete);
-    }
-
     /**
      * Constructor.
      *
@@ -466,6 +456,10 @@ class Player {
             this.rowH = this.boxH;
             // A low row: the answers and a done hazard's steps take the compact form.
             play.classList.toggle('is-tight', this.boxH < TIGHT);
+            // With a big button under the answers (Study, Test's Done), a low row drops the tip line.
+            if (this.doneBar.firstChild && !this.q.hidden) {
+                this.qs.hidden = this.boxH < TIGHT;
+            }
             side.style.maxHeight = row + 'px';
             if (play.style.maxWidth === was && Math.abs(main.getBoundingClientRect().top - m.top) < 1) {
                 break;
@@ -780,11 +774,10 @@ class Player {
      */
     show(index) {
         this.voice.stop();
-        this.listenComplete = false;
         this.index = index;
         this.scene = this.data.scenes[index];
-        this.studystep = 0;
         this.studyHazard = 0;
+        this.studyReset();
         this.view = null;
         this.hold = null;
         this.tried = new Set();
@@ -838,20 +831,12 @@ class Player {
                 }
                 listen.classList.add('is-playing');
                 listen.querySelector('span').textContent = S.listen_stop;
-                this.voice.play(scene.voice, (completed) => {
+                this.voice.play(scene.voice, () => {
                     listen.classList.remove('is-playing');
                     listen.querySelector('span').textContent = S.listen;
-                    if (completed && this.scene === scene) {
-                        this.listenComplete = true;
-                        this.refresh();
-                    }
                 });
             });
             head.appendChild(listen);
-            if (Number(this.config.mustlisten)) {
-                this.listenNotice = el('p', 'sh-voicenote', {text: S.listen_required, role: 'status'});
-                head.appendChild(this.listenNotice);
-            }
         }
         if (scene.voicenote) {
             head.appendChild(el('p', 'sh-voicenote', {text: scene.voicenote}));
@@ -942,8 +927,6 @@ class Player {
         wrap.appendChild(main);
 
         const foot = el('div', 'sh-play-foot');
-        this.studybtn = button('sh-btn sh-btn-ghost', S.study_next, 'play', () => this.studyStep());
-        this.studybtn.hidden = this.mode !== 'study';
         const last = index === this.data.scenes.length - 1;
         this.nextbtn = button('sh-btn sh-btn-primary', last ? S.finish : S.nextscene, last ? 'flag' : 'next', () => {
             if (last) {
@@ -954,7 +937,7 @@ class Player {
         }, {after: !last});
         this.progress = el('span', 'sh-play-progress');
         // The footer is the slide's status bar: the hazards, the risk of the one worked on, the risk removed, and Next.
-        foot.append(this.progress, risk, this.testnote, this.safety.node, this.studybtn, this.nextbtn);
+        foot.append(this.progress, risk, this.testnote, this.safety.node, this.nextbtn);
         wrap.appendChild(foot);
         this.stage.replaceChildren(wrap);
 
@@ -1064,8 +1047,10 @@ class Player {
      */
     focusHazard(spot) {
         if (this.mode === 'study') {
-            this.studyHazard = this.scene.spots.indexOf(spot);
-            this.studystep = 0;
+            if (this.scene.spots.indexOf(spot) !== this.studyHazard) {
+                this.studyHazard = this.scene.spots.indexOf(spot);
+                this.studyReset();
+            }
             this.view = null;
         } else {
             this.view = spot === this.active() ? null : spot;
@@ -1085,7 +1070,7 @@ class Player {
         this.view = null;
         if (this.mode === 'study') {
             this.studyHazard = Math.min((this.studyHazard || 0) + 1, this.scene.spots.length - 1);
-            this.studystep = 0;
+            this.studyReset();
         } else {
             this.hold = null;
         }
@@ -1107,6 +1092,10 @@ class Player {
             this.lookHere(h);
             Sound.play('swoop');
             this.say(fmt(S.hcard_title, {number: h.number, total: this.scene.spots.length}));
+        }
+        const study = this.mode === 'study' && this.root.querySelector('.sh-btn-study');
+        if (study) {
+            study.focus({preventScroll: true});
         }
     }
 
@@ -1173,6 +1162,9 @@ class Player {
      * @returns {string}
      */
     hint(r, h) {
+        if (this.mode === 'study') {
+            return this.srev ? S.hint_study_after : S.hint_study_guess;
+        }
         if (r === 'hazard') {
             return fmt(S.hint_hazard, h.number);
         }
@@ -1204,7 +1196,7 @@ class Player {
         // Spots: the one to work on pulses; the ones still to come wait quietly.
         scene.spots.forEach((s) => {
             const node = this.spotnodes.get(s.id);
-            const named = study || s.found;
+            const named = study ? this.studyRevealed(s, 'hazard') : s.found;
             node.classList.toggle('is-found', !!named);
             node.classList.toggle('is-complete', !!s.complete && !study);
             node.classList.toggle('is-active', s === h);
@@ -1222,7 +1214,7 @@ class Player {
         const title = h ? fmt(S.hcard_title, {number: h.number, total: scene.spots.length}) : '';
         this.hTitle.textContent = title;
         this.setLabel.textContent = title;
-        this.hName.textContent = h && (study || h.found) ? (h.name || '') : '';
+        this.hName.textContent = h && (study ? this.studyRevealed(h, 'hazard') : h.found) ? (h.name || '') : '';
         this.hName.hidden = !this.hName.textContent;
         this.box.dataset.row = row || 'done';
         this.box.classList.toggle('is-finished', !row);
@@ -1258,20 +1250,7 @@ class Player {
                 return pill;
             }));
         this.progress.hidden = study;
-        this.studybtn.hidden = !study;
-        this.nextbtn.disabled = this.listeningRequired() || (!study && !scene.complete);
-        this.studybtn.disabled = this.listeningRequired();
-        if (this.listenNotice) {
-            this.listenNotice.hidden = !this.listeningRequired();
-        }
-        if (this.listeningRequired()) {
-            this.stage.querySelectorAll('.sh-chip, .sh-btn-done').forEach((node) => {
-                node.disabled = true;
-            });
-        }
-        if (study) {
-            this.studybtn.disabled = this.listeningRequired() || !cur || this.studyDone(cur);
-        }
+        this.nextbtn.disabled = !study && !scene.complete;
         this.fit();
     }
 
@@ -1384,6 +1363,11 @@ class Player {
             // A low panel: the button says what to do, so the tip line makes room for the answers.
             this.qs.hidden = (this.rowH || 999) < TIGHT;
         }
+        if (this.mode === 'study') {
+            this.doneBar.appendChild(this.studyButton(h));
+            // A low panel: the button says what to do, so the tip line makes room for the answers.
+            this.qs.hidden = (this.rowH || 999) < TIGHT;
+        }
     }
 
     /**
@@ -1468,18 +1452,6 @@ class Player {
     }
 
     /**
-     * Study: the step whose answers are shown now (the step of the next right control), or null when all are shown.
-     *
-     * @param {object} h
-     * @returns {string|null}
-     */
-    studyRow(h) {
-        const steps = this.studySteps(h);
-        const shown = this.studyShown(h).length;
-        return shown < steps.length ? steps[shown].kind : null;
-    }
-
-    /**
      * A step's state for a hazard: now (to work on), done, wait (later) or skip (not needed: eliminated).
      *
      * @param {string} r the step
@@ -1489,24 +1461,20 @@ class Player {
      * @returns {string}
      */
     rowState(r, row, h, viewing = false) {
-        if (r === 'hazard') {
-            if (this.mode === 'study' || h.found) {
-                return 'done';
-            }
-            return row === 'hazard' ? 'now' : 'wait';
-        }
         if (this.mode === 'study') {
-            const steps = this.studySteps(h);
-            if (!steps.some((c) => c.kind === r)) {
-                return 'skip';
-            }
-            if (!row) {
-                return 'done';
-            }
             if (r === row) {
                 return 'now';
             }
-            return KINDS.indexOf(r) < KINDS.indexOf(row) ? 'done' : 'wait';
+            if (r !== 'hazard' && !(h.rows[r] || []).length) {
+                return 'skip';
+            }
+            return this.studyRevealed(h, r) ? 'done' : 'wait';
+        }
+        if (r === 'hazard') {
+            if (h.found) {
+                return 'done';
+            }
+            return row === 'hazard' ? 'now' : 'wait';
         }
         if (Number(h.done[r])) {
             // Only a row with no labels (older content) is skipped; every other row is played, even once eliminated.
@@ -1529,7 +1497,8 @@ class Player {
         const study = this.mode === 'study';
         const chosen = row !== 'hazard' && Number(c.chosen);
         const tried = row === 'hazard' && this.tried && this.tried.has(h.id + ':' + c.id);
-        const state = this.chipState(c, chosen, tried);
+        const right = row === 'hazard' ? c.id === h.id : !!Number(c.correct);
+        const state = study ? this.studyChipState(h, row, right) : this.chipState(c, chosen, tried);
         let cls = 'sh-chip sh-opt sh-chip-' + row + (state ? ' ' + state : '');
         if (this.pending && this.pending.has(row + ':' + c.id)) {
             cls += ' is-checking';
@@ -1537,19 +1506,20 @@ class Player {
         const node = el('button', cls, {type: 'button', dir: 'auto', 'data-label': row + ':' + c.id,
             style: '--d:' + (index * 45) + 'ms', disabled: !study && (chosen || tried) ? true : null});
         const key = el('span', 'sh-opt-key', {'aria-hidden': 'true'});
+        const fresh = study ? this.sfresh : this.fresh === row + ':' + c.id;
         if (state === 'is-right' || state === 'is-picked') {
-            key.appendChild(tickMark(true, !study && this.fresh === row + ':' + c.id));
+            key.appendChild(tickMark(true, fresh));
         } else if (state === 'is-wrongans') {
-            key.appendChild(tickMark(false, !study && this.fresh === row + ':' + c.id));
+            key.appendChild(tickMark(false, fresh));
         } else {
             key.textContent = String.fromCharCode(65 + (index % 26));
         }
         node.append(key, el('span', 'sh-chip-text', {text: c.text}));
         if (study) {
-            node.title = (c.correct ? S.right : S.wrong) + (c.reason ? ': ' + c.reason : '');
-            node.setAttribute('aria-label', c.text + '. ' + node.title);
-            node.addEventListener('click', () => this.feedbackCard({marked: 1, correct: c.correct, reason: c.reason,
-                level: c.level, dl: c.dl, dc: c.dc, eliminates: c.eliminates}, c.text, row));
+            if (this.sguess === c.id) {
+                node.classList.add('is-guess');
+            }
+            node.addEventListener('click', () => this.studyTap(h, row, c, right));
             return node;
         }
         if (node.disabled) {
@@ -1573,9 +1543,6 @@ class Player {
      * @returns {string}
      */
     chipState(c, chosen, tried) {
-        if (this.mode === 'study') {
-            return c.correct ? 'is-right' : 'is-wrongans';
-        }
         if (chosen) {
             if (this.mode === 'test') {
                 return 'is-picked';
@@ -1593,9 +1560,6 @@ class Player {
      * @param {object} label
      */
     drag(e, node, label) {
-        if (this.listeningRequired()) {
-            return;
-        }
         if (e.button > 0) {
             return;
         }
@@ -1673,9 +1637,6 @@ class Player {
      * @param {object} label {id, row, text}
      */
     dropOn(spot, label) {
-        if (this.listeningRequired()) {
-            return;
-        }
         if (!spot || this.mode === 'study' || (label.row === 'hazard' && spot.found) || spot !== this.active()) {
             return;
         }
@@ -1745,9 +1706,6 @@ class Player {
      * @param {string} row
      */
     doneRow(spot, row) {
-        if (this.listeningRequired()) {
-            return;
-        }
         const scene = this.scene;
         // After any label still being marked, so the row ends with every label the learner chose.
         this.queue = (this.queue || Promise.resolve()).then(() => this.endRow(scene, spot, row)).catch((err) => this.error(err));
@@ -2004,6 +1962,36 @@ class Player {
     }
 
     /**
+     * What a right answer did, as small pills: its level and how far it lowered the likelihood and consequence.
+     *
+     * @param {HTMLElement} tags where the pills go
+     * @param {object} result {level, dl, dc, eliminates}
+     * @param {string} row
+     */
+    effectPills(tags, result, row) {
+        if (row === 'hazard') {
+            tags.appendChild(el('span', 'sh-tagpill is-found', {text: S.fb_hazardfound}));
+            return;
+        }
+        if ((row === 'eliminate' || result.level === 'elimination') && !Number(result.eliminates)) {
+            tags.appendChild(el('span', 'sh-tagpill', {text: S.fb_cannot}));
+            return;
+        }
+        if (result.level) {
+            tags.appendChild(el('span', 'sh-tagpill is-level', {text: S['level_' + result.level] || result.level}));
+        }
+        if (Number(result.eliminates)) {
+            tags.appendChild(el('span', 'sh-tagpill is-gone', {text: S.fb_removes}));
+        }
+        if (Number(result.dl) && !Number(result.eliminates)) {
+            tags.appendChild(el('span', 'sh-tagpill is-down', {text: fmt(S.fb_lowers_l, result.dl)}));
+        }
+        if (Number(result.dc) && !Number(result.eliminates)) {
+            tags.appendChild(el('span', 'sh-tagpill is-down', {text: fmt(S.fb_lowers_c, result.dc)}));
+        }
+    }
+
+    /**
      * The feedback card after a marked label (and when a label is tapped in Study).
      *
      * @param {object} result
@@ -2022,28 +2010,7 @@ class Player {
         card.appendChild(head);
         // What a right answer did, as small pills: its level and how far it lowered the likelihood and consequence.
         if (right) {
-            const tags = head;
-            if (row === 'hazard') {
-                tags.appendChild(el('span', 'sh-tagpill is-found', {text: S.fb_hazardfound}));
-            } else if ((row === 'eliminate' || result.level === 'elimination') && !Number(result.eliminates)) {
-                tags.appendChild(el('span', 'sh-tagpill', {text: S.fb_cannot}));
-            } else {
-                if (result.level) {
-                    tags.appendChild(el('span', 'sh-tagpill is-level', {text: S['level_' + result.level] || result.level}));
-                }
-                if (Number(result.eliminates)) {
-                    tags.appendChild(el('span', 'sh-tagpill is-gone', {text: S.fb_removes}));
-                }
-                if (Number(result.dl) && !Number(result.eliminates)) {
-                    tags.appendChild(el('span', 'sh-tagpill is-down', {text: fmt(S.fb_lowers_l, result.dl)}));
-                }
-                if (Number(result.dc) && !Number(result.eliminates)) {
-                    tags.appendChild(el('span', 'sh-tagpill is-down', {text: fmt(S.fb_lowers_c, result.dc)}));
-                }
-                if (!tags.children.length) {
-                    tags.appendChild(el('span', 'sh-tagpill', {text: S.fb_nochange}));
-                }
-            }
+            this.effectPills(head, result, row);
         }
         if (result.reason) {
             card.appendChild(el('p', 'sh-fb-reason', {dir: 'auto', text: result.reason}));
@@ -2205,50 +2172,89 @@ class Player {
     }
 
     /**
-     * Study: the right controls of a hazard in playing order.
-     *
-     * @param {object} h
-     * @returns {object[]}
+     * Study: starts the hazard studied from its first step, nothing revealed yet.
      */
-    studySteps(h) {
-        const steps = [];
-        for (const k of KINDS) {
-            for (const c of h.rows[k] || []) {
-                if (c.correct) {
-                    steps.push({...c, kind: k});
-                }
-            }
-        }
-        return steps;
+    studyReset() {
+        this.sidx = 0;
+        this.srev = false;
+        this.sfin = false;
+        this.sguess = null;
+        this.sfresh = false;
     }
 
     /**
-     * Study: the controls shown so far for a hazard.
+     * Study: the steps of a hazard in order: name it, then each step that has answers.
+     *
+     * @param {object} h
+     * @returns {string[]}
+     */
+    studyPlan(h) {
+        return ROWS.filter((r) => r === 'hazard' || (h.rows[r] || []).length);
+    }
+
+    /**
+     * Study: whether a step's answers are shown for a hazard (earlier hazards: all; later ones: none).
+     *
+     * @param {object} h
+     * @param {string} r
+     * @returns {boolean}
+     */
+    studyRevealed(h, r) {
+        const index = this.scene.spots.indexOf(h);
+        const cur = this.studyHazard || 0;
+        if (index !== cur) {
+            return index < cur;
+        }
+        if (this.sfin) {
+            return true;
+        }
+        const at = this.studyPlan(h).indexOf(r);
+        return at >= 0 && (at < this.sidx || (at === this.sidx && this.srev));
+    }
+
+    /**
+     * Study: the step worked on now, or null once the hazard is finished.
+     *
+     * @param {object} h
+     * @returns {string|null}
+     */
+    studyRow(h) {
+        if (this.scene.spots.indexOf(h) !== (this.studyHazard || 0) || this.sfin) {
+            return null;
+        }
+        return this.studyPlan(h)[this.sidx] || null;
+    }
+
+    /**
+     * Study: the right controls of the steps revealed so far.
      *
      * @param {object} h
      * @returns {object[]}
      */
     studyShown(h) {
-        const index = this.scene.spots.indexOf(h);
-        const steps = this.studySteps(h);
-        if (index < (this.studyHazard || 0)) {
-            return steps;
+        const shown = [];
+        for (const k of KINDS) {
+            if (this.studyRevealed(h, k)) {
+                (h.rows[k] || []).filter((c) => Number(c.correct)).forEach((c) => shown.push({...c, kind: k}));
+            }
         }
-        return index === (this.studyHazard || 0) ? steps.slice(0, this.studystep) : [];
+        return shown;
     }
 
     /**
-     * Study: whether every right control of the hazard has been shown.
+     * Study: whether the hazard has been walked through.
      *
      * @param {object} h
      * @returns {boolean}
      */
     studyDone(h) {
-        return this.studyShown(h).length >= this.studySteps(h).length;
+        const index = this.scene.spots.indexOf(h);
+        const cur = this.studyHazard || 0;
+        return index < cur || (index === cur && this.sfin);
     }
 
     /**
-     * Study: a hazard's risk with the controls shown so far.
+     * Study: a hazard's risk with the controls revealed so far.
      *
      * @param {object} h
      * @returns {object} {likelihood, consequence, eliminated}
@@ -2268,36 +2274,144 @@ class Player {
     }
 
     /**
-     * Study: shows the next right control (then the next hazard).
+     * Study: how an answer looks: plain until the step is revealed, then ticked (right) or crossed (wrong).
+     *
+     * @param {object} h
+     * @param {string} row
+     * @param {boolean} right
+     * @returns {string}
      */
-    studyStep() {
-        if (this.listeningRequired()) {
+    studyChipState(h, row, right) {
+        if (!this.studyRevealed(h, row)) {
+            return '';
+        }
+        return right ? 'is-right' : 'is-wrongans';
+    }
+
+    /**
+     * Study: the big button in the hazard card: Show the answer, then Next: (step), then Finish hazard.
+     *
+     * @param {object} h
+     * @returns {HTMLElement}
+     */
+    studyButton(h) {
+        const plan = this.studyPlan(h);
+        let text = S.study_show;
+        let ic = 'eye';
+        if (this.srev) {
+            const next = plan[this.sidx + 1];
+            text = next ? fmt(S.study_next_step, S['step_' + next]) : S.study_finish;
+            ic = next ? 'next' : 'check';
+        }
+        const b = button('sh-btn sh-btn-primary sh-btn-done sh-btn-study', text, ic, () => this.studyPress(),
+            {after: ic === 'next'});
+        b.dataset.study = this.srev ? 'next' : 'show';
+        return b;
+    }
+
+    /**
+     * Study: an answer tapped. Before the reveal it is the learner's guess; after it, it says why it is right or wrong.
+     *
+     * @param {object} h
+     * @param {string} row
+     * @param {object} c
+     * @param {boolean} right
+     */
+    studyTap(h, row, c, right) {
+        if (!this.studyRevealed(h, row)) {
+            this.sguess = c.id;
+            this.studyPress();
             return;
         }
+        let reason = c.reason || '';
+        if (row === 'hazard') {
+            reason = right ? (h.why || '') : S.study_nothazard;
+        }
+        this.feedbackCard({marked: 1, correct: right, reason, level: c.level, dl: c.dl, dc: c.dc,
+            eliminates: c.eliminates}, c.text, row);
+    }
+
+    /**
+     * Study: the big button pressed: reveals the step's answers, or moves on to the next step, or finishes the hazard.
+     */
+    studyPress() {
         const h = this.active();
-        if (!h) {
+        const row = h && this.studyRow(h);
+        if (!row) {
             return;
         }
         const before = this.studyRisk(h);
-        const steps = this.studySteps(h);
-        const row = this.studyRow(h);
-        if (this.studystep < steps.length) {
-            const c = steps[this.studystep];
-            this.studystep++;
+        if (!this.srev) {
+            this.srev = true;
+            this.sfresh = true;
             Sound.play('drop');
-            this.feedbackCard({marked: 1, correct: 1, reason: c.reason, level: c.level, dl: c.dl, dc: c.dc,
-                eliminates: c.eliminates}, c.text, c.kind);
-            if (c.voice && c.voice.length) {
-                this.voice.play(c.voice);
+            this.studyCard(h, row);
+        } else {
+            this.sguess = null;
+            if (this.sidx + 1 < this.studyPlan(h).length) {
+                this.sidx++;
+                this.srev = false;
+                this.setFeedback();
+                setTimeout(() => Sound.play('step'), 120);
+            } else {
+                this.sfin = true;
+                this.setFeedback();
             }
         }
         this.refresh();
+        this.sfresh = false;
         this.showRisk(h, true, before);
-        const now = this.studyRow(h);
-        if (now !== row && now) {
-            setTimeout(() => Sound.play('step'), 260);
-        } else if (now !== row) {
+        if (this.sfin) {
             this.celebrate(h, false);
+        }
+        // Keyboard users stay on the big button (or on Next: Hazard n once the hazard is finished).
+        const go = this.sfin ? this.root.querySelector('.sh-btn-go') || this.nextbtn : this.root.querySelector('.sh-btn-study');
+        if (go) {
+            go.focus({preventScroll: true});
+            // On a phone the button can move as the answers change: it scrolls back into view only if it left it.
+            const box = go.getBoundingClientRect();
+            if (box.bottom > window.innerHeight || box.top < 0) {
+                go.scrollIntoView({block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth'});
+            }
+        }
+    }
+
+    /**
+     * Study: the card shown on reveal: the right answers, what each does and why.
+     *
+     * @param {object} h
+     * @param {string} row
+     */
+    studyCard(h, row) {
+        const rights = row === 'hazard' ? [{id: h.id, text: h.name || '', reason: h.why || ''}]
+            : (h.rows[row] || []).filter((c) => Number(c.correct));
+        const card = el('div', 'sh-fb is-right sh-fb-study', {role: 'status'});
+        const head = el('div', 'sh-fb-head');
+        head.append(tickMark(true, true), el('strong', '', {text: rights.length > 1 ? S.study_answers : S.study_answer}));
+        if (this.sguess !== null) {
+            const hit = rights.some((c) => c.id === this.sguess);
+            head.appendChild(el('span', 'sh-tagpill ' + (hit ? 'is-gone' : 'is-miss'),
+                {text: hit ? S.study_guess_right : S.study_guess_wrong}));
+        }
+        card.appendChild(head);
+        const list = el('ul', 'sh-fb-answers');
+        rights.forEach((c) => {
+            const li = el('li', 'sh-fb-answer');
+            const top = el('div', 'sh-fb-answer-head');
+            top.append(el('span', 'sh-fb-label', {dir: 'auto', text: c.text}));
+            this.effectPills(top, c, row);
+            li.appendChild(top);
+            if (c.reason) {
+                li.appendChild(el('p', 'sh-fb-reason', {dir: 'auto', text: c.reason}));
+            }
+            list.appendChild(li);
+        });
+        card.appendChild(list);
+        this.setFeedback(card);
+        this.say(rights.map((c) => c.text + '. ' + (c.reason || '')).join(' '));
+        const voice = rights.flatMap((c) => c.voice || []);
+        if (voice.length) {
+            this.voice.play(voice);
         }
     }
 

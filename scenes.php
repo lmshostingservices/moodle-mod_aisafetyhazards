@@ -147,7 +147,9 @@ foreach ($scenes as $s) {
     $i++;
     [$url] = manager::get_scene_image($context, (int)$s->id);
     $hazards = manager::scene_hazards((int)$s->id);
-    $hazardsok = manager::hazards_ok($hazards);
+    // The same check as the learner's page: an older scene plays, but is shown as needing Reduce and PPE answers.
+    $hstate = manager::hazards_state($hazards);
+    $hazardsok = $hstate === 'ok';
     // A picture asked for and not resolved yet: shown with "Check again" above, never asked for twice.
     $waiting = $step === setuppath::PICTURES
         && requests::waiting((int)$instance->id, requests::IMAGE, (int)$s->id) !== null;
@@ -157,7 +159,7 @@ foreach ($scenes as $s) {
             $tocreate[] = (int)$s->id;
         }
     }
-    $nohazards += $hazardsok ? 0 : 1;
+    $nohazards += $hstate === 'incomplete' ? 1 : 0;
     $toclip = [];
     if ($voiceconfig && $voiceconfig['locale'] !== '') {
         foreach (voiceover::segments($s, $voiceconfig, $hazards, voiceover::parts($instance)) as $segment) {
@@ -186,6 +188,7 @@ foreach ($scenes as $s) {
         'noimage' => !$url,
         'waiting' => $waiting,
         'hazardsok' => $hazardsok,
+        'hazardsolder' => $hstate === 'older',
         'canai' => $canai,
         'imagecredits' => \mod_aisafetyhazards\local\ai\lmslabs::IMAGE_CREDITS,
         'editurl' => $editurl->out(false),

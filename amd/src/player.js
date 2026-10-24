@@ -45,7 +45,8 @@ const KEYS = ['row_hazard', 'row_eliminate', 'row_reduce', 'row_ppe', 'rowhelp_h
     'rowhelp_reduce', 'rowhelp_ppe', 'rowwait_hazard', 'rowwait_controls', 'rowdone', 'rowdone_button', 'rowdone_eliminated',
     'likelihood', 'consequence', 'riskrating', 'safetybar', 'safetybar_help', 'progressbar', 'scene_of', 'mode_study',
     'mode_practice', 'mode_test', 'nextscene', 'finish', 'backtohome', 'sounds', 'fullscreen', 'fullscreen_exit',
-    'listen', 'listen_stop', 'listen_required', 'spot', 'spot_found', 'activehazard', 'hazard_n', 'controls_applied', 'none_yet',
+    'listen', 'listen_stop', 'listen_required', 'voice_wait', 'spot', 'spot_found', 'activehazard', 'hazard_n',
+    'controls_applied', 'none_yet',
     'right', 'wrong', 'fb_right', 'fb_wrong', 'fb_lowers', 'fb_lowers_l', 'fb_lowers_c', 'fb_removes', 'fb_nochange',
     'fb_hazardfound', 'fb_testsaved', 'fb_cannot', 'test_gauges', 'scenedone', 'scenedone_test', 'study_show',
     'study_next_step', 'study_finish', 'study_answer', 'study_answers', 'study_guess_right', 'study_guess_wrong',
@@ -262,6 +263,15 @@ class Voice {
             }
         };
         next();
+    }
+
+    /**
+     * Whether a list is playing.
+     *
+     * @returns {boolean}
+     */
+    playing() {
+        return !!this.onstop || (!this.audio.paused && !this.audio.ended);
     }
 
     /**
@@ -482,6 +492,8 @@ class Player {
             this.roomBelow();
         }
         this.placeFeedback();
+        // After the feedback has found its place, which can change the room the finished-hazard box has.
+        this.fitDone();
         this.cards.classList.toggle('is-narrow', this.cards.firstChild.getBoundingClientRect().width < 175);
         // The footer on one line: on a narrow slide the gauges give way to the matrix and the rating.
         foot.classList.remove('is-tight');
@@ -566,10 +578,150 @@ class Player {
             const first = this.feedback.firstElementChild;
             if (first) {
                 first.appendChild(iconButton('sh-fb-close', S.close, 'cross', () => this.hideFeedback()));
-                this.fbTimer = setTimeout(() => this.hideFeedback(), FB_TIME);
+                this.autoHide(FB_TIME);
             }
         } else {
             this.box.insertBefore(this.feedback, this.hNext);
+        }
+    }
+
+    /**
+     * A finished hazard's box lists every answer in full. When the panel is too low for that, each answer takes one
+     * line, and if that is still too much, each step shows its first answer and "+n".
+     */
+    fitDone() {
+        const grid = this.hNext && this.hNext.querySelector('.sh-donegrid');
+        if (!grid) {
+            return;
+        }
+        grid.classList.remove('is-snug', 'is-short');
+        if (getComputedStyle(grid).overflowY === 'visible') {
+            return;
+        }
+        const over = () => grid.scrollHeight > grid.clientHeight + 1;
+        if (over()) {
+            grid.classList.add('is-snug');
+            if (over()) {
+                grid.classList.add('is-short');
+            }
+        }
+    }
+
+    /**
+     * Hides docked feedback after a while, but never while a voiceover is still explaining it.
+     *
+     * @param {number} ms
+     */
+    autoHide(ms) {
+        clearTimeout(this.fbTimer);
+        this.fbTimer = setTimeout(() => {
+            if (this.talking) {
+                this.hideAfterTalk = true;
+            } else {
+                this.hideFeedback();
+            }
+        }, ms);
+    }
+
+    /**
+     * Plays a voiceover and keeps the picture, the cards and the answers as they are until it ends (or is stopped or
+     * fails), so nothing moves while it speaks. Then "after" makes the change that was waiting.
+     *
+     * @param {string[]} urls
+     * @param {Function|null} after
+     */
+    speak(urls, after = null) {
+        const go = () => {
+            if (after) {
+                after();
+            } else {
+                this.refresh();
+            }
+        };
+        if (!urls || !urls.length) {
+            go();
+            return;
+        }
+        this.voice.play(urls, () => {
+            this.talking = false;
+            this.root.querySelector('.sh-play')?.classList.remove('is-talking');
+            go();
+            // Keyboard users land on the button that was waiting for the voiceover.
+            const wait = this.root.querySelector('.sh-btn-study, .sh-hcard-next .sh-btn-go');
+            const at = document.activeElement;
+            if (wait && (!at || at === document.body || at.disabled === true)) {
+                wait.focus({preventScroll: true});
+            }
+            if (this.hideAfterTalk) {
+                this.hideAfterTalk = false;
+                this.autoHide(2500);
+            }
+            this.askQueued();
+        });
+        this.talking = true;
+        this.hideAfterTalk = false;
+        this.root.querySelector('.sh-play')?.classList.add('is-talking');
+        this.lockWhileTalking();
+    }
+
+    /**
+     * Reads the question of a step when it starts ("Step 3. How can the risk be lowered?"), once its clip is made.
+     * It waits for the scene's own voiceover, and for a voiceover explaining an answer, to end first.
+     */
+    readAsk() {
+        const due = this.askDue;
+        if (!due || this.frozen || this.listeningRequired()) {
+            return;
+        }
+        this.askDue = null;
+        const clips = (this.scene && this.scene.questions) || {};
+        const {h, row} = due;
+        let key = row === 'hazard' ? 'h' + h.number : row;
+        if ((row === 'reduce' || row === 'ppe') && this.isEliminated(h)) {
+            key += '_backup';
+        }
+        const urls = clips[key];
+        if (!urls || !urls.length || h !== this.shown()) {
+            return;
+        }
+        if (this.talking || this.voice.playing()) {
+            // Something is already being read: the question follows it.
+            this.askAfter = urls;
+            return;
+        }
+        this.speak(urls);
+    }
+
+    /**
+     * Reads a step question that waited for another voiceover.
+     */
+    askQueued() {
+        const urls = this.askAfter;
+        if (urls && !this.talking && !this.voice.playing()) {
+            this.askAfter = null;
+            this.speak(urls);
+        }
+    }
+
+    /**
+     * While a voiceover plays, the answers and the buttons that move on wait for it.
+     */
+    lockWhileTalking() {
+        if (!this.talking) {
+            return;
+        }
+        this.stage.querySelectorAll('.sh-chip, .sh-btn-done, .sh-btn-study, .sh-btn-go').forEach((node) => {
+            node.disabled = true;
+        });
+        if (this.nextbtn) {
+            this.nextbtn.disabled = true;
+        }
+        const tip = this.qs && this.qs.querySelector('.sh-question-tip');
+        if (tip && !this.qs.hidden) {
+            const wave = el('span', 'sh-wave', {'aria-hidden': 'true'});
+            wave.append(el('i'), el('i'), el('i'), el('i'));
+            tip.classList.add('is-talking');
+            tip.replaceChildren(wave, el('span', '', {text: S.voice_wait}));
         }
     }
 
@@ -787,6 +939,10 @@ class Player {
      */
     show(index) {
         this.voice.stop();
+        this.talking = false;
+        this.frozen = null;
+        this.askDue = null;
+        this.askAfter = null;
         this.listenComplete = false;
         this.listenNotice = null;
         this.index = index;
@@ -853,6 +1009,9 @@ class Player {
                         this.listenComplete = true;
                         this.refresh();
                     }
+                    if (this.scene === scene) {
+                        setTimeout(() => this.askQueued(), 0);
+                    }
                 });
             });
             head.appendChild(listen);
@@ -918,7 +1077,7 @@ class Player {
         this.feedback.addEventListener('pointerenter', () => clearTimeout(this.fbTimer));
         this.feedback.addEventListener('pointerleave', () => {
             if (this.fbDocked && this.feedback.children.length) {
-                this.fbTimer = setTimeout(() => this.hideFeedback(), FB_TIME / 2);
+                this.autoHide(FB_TIME / 2);
             }
         });
         this.hNext = el('div', 'sh-hcard-next');
@@ -1080,7 +1239,7 @@ class Player {
         }
         this.refresh();
         if (spot.voice && spot.voice.length) {
-            this.voice.play(spot.voice);
+            this.speak(spot.voice);
         }
     }
 
@@ -1217,7 +1376,8 @@ class Player {
         if (h && study) {
             row = this.studyRow(h);
         } else if (h && !viewing) {
-            row = this.currentRow();
+            // While a voiceover explains the answer just given, the step it belongs to stays on screen.
+            row = this.frozen && this.frozen.spot === h ? this.frozen.row : this.currentRow();
         }
         // Spots: the one to work on pulses; the ones still to come wait quietly.
         scene.spots.forEach((s) => {
@@ -1285,7 +1445,9 @@ class Player {
                 node.disabled = true;
             });
         }
+        this.lockWhileTalking();
         this.fit();
+        this.readAsk();
     }
 
     /**
@@ -1390,7 +1552,8 @@ class Player {
             meter.appendChild(el('span', 'sh-found-text', {text: found + '/' + need, 'aria-hidden': 'true'}));
             this.qs.appendChild(meter);
         }
-        const labels = row === 'hazard' ? this.scene.chips.filter((c) => !c.placed) : (h.rows[row] || []);
+        const hit = this.frozen && this.frozen.spot === h ? this.frozen.label : null;
+        const labels = row === 'hazard' ? this.scene.chips.filter((c) => !c.placed || c.id === hit) : (h.rows[row] || []);
         labels.forEach((c, i) => this.opts.appendChild(this.chip(c, row, i, h)));
         if (this.mode === 'test' && row !== 'eliminate' && row !== 'hazard') {
             const chosen = labels.filter((c) => Number(c.chosen)).length;
@@ -1418,6 +1581,9 @@ class Player {
         const key = h.id + ':' + row;
         const changed = this.qkey !== key;
         this.qkey = key;
+        if (changed) {
+            this.askDue = {h, row};
+        }
         this.q.className = 'sh-question sh-question-' + row;
         if (changed && !REDUCED) {
             void this.q.offsetWidth;
@@ -1468,8 +1634,13 @@ class Player {
             const li = el('li', 'sh-donecard sh-donecard-' + r, {style: '--d:' + (120 + ROWS.indexOf(r) * 70) + 'ms'});
             const k = el('span', 'sh-donecard-key');
             k.append(icon(r), el('span', '', {text: S['step_' + r]}));
-            const v = el('span', 'sh-donecard-val');
-            v.append(...this.summary(r, h, state === 'skip' ? 'skip' : 'done', (this.rowH || 999) < 480 ? 1 : 2));
+            // Every answer chosen, one under another. If the panel is too low, the list tightens (see fitDone()).
+            const v = el('span', 'sh-donecard-val is-list');
+            const items = this.summary(r, h, state === 'skip' ? 'skip' : 'done', 99);
+            v.append(...items);
+            if (items.length > 1) {
+                v.appendChild(el('span', 'sh-pill sh-pill-' + r + ' is-more is-fallback', {text: '+' + (items.length - 1)}));
+            }
             li.append(k, v);
             list.appendChild(li);
         });
@@ -1486,6 +1657,9 @@ class Player {
             }
         }
         this.hNext.appendChild(box);
+        // Once the cards have popped in, check again that the list fits.
+        clearTimeout(this.doneFit);
+        this.doneFit = setTimeout(() => this.fitDone(), 700);
     }
 
     /**
@@ -1503,6 +1677,10 @@ class Player {
                 return 'now';
             }
             return this.studyRevealed(h, r) ? 'done' : 'wait';
+        }
+        if (this.frozen && this.frozen.spot === h && this.frozen.row === r && !viewing) {
+            // A voiceover is explaining this step's answer: the card ticks once it ends.
+            return 'now';
         }
         if (r === 'hazard') {
             if (h.found) {
@@ -1532,7 +1710,10 @@ class Player {
         const chosen = row !== 'hazard' && Number(c.chosen);
         const tried = row === 'hazard' && this.tried && this.tried.has(h.id + ':' + c.id);
         const right = row === 'hazard' ? c.id === h.id : !!Number(c.correct);
-        const state = study ? this.studyChipState(h, row, right) : this.chipState(c, chosen, tried);
+        let state = study ? this.studyChipState(h, row, right) : this.chipState(c, chosen, tried);
+        if (row === 'hazard' && this.frozen && this.frozen.label === c.id) {
+            state = 'is-right';
+        }
         let cls = 'sh-chip sh-opt sh-chip-' + row + (state ? ' ' + state : '');
         if (this.pending && this.pending.has(row + ':' + c.id)) {
             cls += ' is-checking';
@@ -1594,7 +1775,7 @@ class Player {
      * @param {object} label
      */
     drag(e, node, label) {
-        if (this.listeningRequired()) {
+        if (this.listeningRequired() || this.talking) {
             return;
         }
         if (e.button > 0) {
@@ -1674,7 +1855,7 @@ class Player {
      * @param {object} label {id, row, text}
      */
     dropOn(spot, label) {
-        if (this.listeningRequired()) {
+        if (this.listeningRequired() || this.talking) {
             return;
         }
         if (!spot || this.mode === 'study' || (label.row === 'hazard' && spot.found) || spot !== this.active()) {
@@ -1746,7 +1927,7 @@ class Player {
      * @param {string} row
      */
     doneRow(spot, row) {
-        if (this.listeningRequired()) {
+        if (this.listeningRequired() || this.talking) {
             return;
         }
         const scene = this.scene;
@@ -1803,8 +1984,47 @@ class Player {
             // The hazard is finished: it stays in the card until the learner moves on.
             this.hold = spot;
         }
+        const voice = label && result.voice && result.voice.length ? result.voice : null;
+        if (voice && step) {
+            // The voiceover explains this answer: the step stays as it is, with the answer marked, until it ends.
+            this.frozen = {spot, row: step, label: label.row === 'hazard' && result.correct ? label.id : null};
+            // The ticks on the picture and the hazard pills wait too.
+            spot.complete = was;
+        }
         this.refresh();
         this.fresh = null;
+        const now = result.now;
+        if (now && before && (before.likelihood !== now.likelihood || before.consequence !== now.consequence || now.eliminated)) {
+            this.showRisk(spot, true, before);
+        }
+        const moveOn = () => {
+            const frozen = !!this.frozen;
+            this.frozen = null;
+            spot.complete = !!result.complete;
+            if (frozen && this.scene && this.scene.spots.includes(spot)) {
+                this.refresh();
+            }
+            this.moveOn(spot, was, step, result);
+        };
+        if (voice) {
+            this.speak(voice, moveOn);
+        } else {
+            moveOn();
+        }
+    }
+
+    /**
+     * After an answer (and its voiceover): praise, the sound of the next step, the hazard or scene finished.
+     *
+     * @param {object} spot
+     * @param {boolean} was whether the hazard was already complete before the answer
+     * @param {string|null} step the step the answer was given in
+     * @param {object} result
+     */
+    moveOn(spot, was, step, result) {
+        if (!this.scene || !this.scene.spots.includes(spot)) {
+            return;
+        }
         if (this.praiseDue && !spot.complete) {
             this.praise();
         }
@@ -1814,10 +2034,6 @@ class Player {
             this.celebrate(spot, !!result.scenecomplete);
         } else if (!spot.complete && this.currentRow() !== step) {
             setTimeout(() => Sound.play('step'), 260);
-        }
-        const now = result.now;
-        if (now && before && (before.likelihood !== now.likelihood || before.consequence !== now.consequence || now.eliminated)) {
-            this.showRisk(spot, true, before);
         }
         if (result.scenecomplete) {
             this.scene.complete = 1;
@@ -1895,9 +2111,6 @@ class Player {
                 void node.offsetWidth;
                 node.classList.add('is-shake');
             }
-        }
-        if (result.voice && result.voice.length) {
-            this.voice.play(result.voice);
         }
     }
 
@@ -2372,7 +2585,7 @@ class Player {
      * @param {boolean} right
      */
     studyTap(h, row, c, right) {
-        if (this.listeningRequired()) {
+        if (this.listeningRequired() || this.talking) {
             return;
         }
         if (!this.studyRevealed(h, row)) {
@@ -2392,7 +2605,7 @@ class Player {
      * Study: the big button pressed: reveals the step's answers, or moves on to the next step, or finishes the hazard.
      */
     studyPress() {
-        if (this.listeningRequired()) {
+        if (this.listeningRequired() || this.talking) {
             return;
         }
         const h = this.active();
@@ -2471,7 +2684,7 @@ class Player {
         this.say(rights.map((c) => c.text + '. ' + (c.reason || '')).join(' '));
         const voice = rights.flatMap((c) => c.voice || []);
         if (voice.length) {
-            this.voice.play(voice);
+            this.speak(voice);
         }
     }
 

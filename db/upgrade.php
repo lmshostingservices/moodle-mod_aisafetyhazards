@@ -23,11 +23,26 @@
  */
 
 /**
- * Upgrades the plugin. Version 1.0.0 is the first release: there is nothing to upgrade from yet.
+ * Upgrades the plugin.
  *
  * @param int $oldversion
  * @return bool
  */
 function xmldb_aisafetyhazards_upgrade($oldversion) {
+    global $DB;
+    if ($oldversion < 2026101720) {
+        // The voiceover can now read each step's question. Activities that read anything at all read these too; the
+        // clips are only made (and paid for) when the teacher makes them in Set up > Voiceover.
+        $rs = $DB->get_recordset_select('aisafetyhazards', "voiceparts <> ''", null, '', 'id, voiceparts');
+        foreach ($rs as $row) {
+            $parts = array_filter(explode(',', (string)$row->voiceparts));
+            if ($parts && !in_array('questions', $parts, true)) {
+                $parts[] = 'questions';
+                $DB->set_field('aisafetyhazards', 'voiceparts', implode(',', $parts), ['id' => $row->id]);
+            }
+        }
+        $rs->close();
+        upgrade_mod_savepoint(true, 2026101720, 'aisafetyhazards');
+    }
     return true;
 }

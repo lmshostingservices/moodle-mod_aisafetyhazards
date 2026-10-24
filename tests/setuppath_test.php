@@ -83,4 +83,35 @@ final class setuppath_test extends \advanced_testcase {
         $this->assertSame(2, $state['ready']);
         $this->assertNotEmpty($ready);
     }
+
+    /**
+     * An older scene (an eliminated hazard with no Reduce or PPE answers) counts as ready, as learners see it, and is
+     * listed apart so the teacher adds the answers.
+     */
+    public function test_older_scene_matches_learner_view(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $gen = $this->getDataGenerator();
+        $course = $gen->create_course();
+        $plugin = $gen->get_plugin_generator('mod_aisafetyhazards');
+        $instance = $plugin->create_instance(['course' => $course->id]);
+        $context = \context_module::instance($instance->cmid);
+        $scene = $plugin->create_scene($instance, 'Older');
+        // The truck can be eliminated: take away its Reduce and PPE answers, as older scenes were saved.
+        $truck = array_values(array_filter(
+            local\manager::scene_hazards((int)$scene->id),
+            fn($h) => empty($h['distractor'])
+        ))[1];
+        $DB->delete_records_select(
+            'aisafetyhazards_control',
+            "hazardid = ? AND kind IN ('reduce', 'ppe')",
+            [(int)$truck['id']]
+        );
+        $hazards = local\manager::scene_hazards((int)$scene->id);
+        $this->assertSame('older', local\manager::hazards_state($hazards));
+        $this->assertTrue(local\manager::scene_ready($context, $scene), 'Learners can play it.');
+        $state = setuppath::state($instance, $context);
+        $this->assertSame([1, [], [(int)$scene->id]], [$state['ready'], $state['nohazards'], $state['needrows']]);
+        $this->assertSame(setuppath::CHECK, setuppath::resume_step($state, true), 'The teacher is taken to add them.');
+    }
 }

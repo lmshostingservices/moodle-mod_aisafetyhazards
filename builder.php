@@ -105,6 +105,8 @@ if ($step === 'finish') {
     if ($state['nohazards']) {
         $todo[] = $str('finish_nohazards', count($state['nohazards']));
     }
+    // Older scenes: learners can play them, so they count as ready, but they still need Reduce and PPE answers.
+    $warn = $state['needrows'] ? [$str('finish_needrows', count($state['needrows']))] : [];
     $data = [
         'bar' => setuppath::bar(setuppath::FINISH),
         'title' => $str('setupstep_finish'),
@@ -112,6 +114,7 @@ if ($step === 'finish') {
         'scenes' => $state['scenes'],
         'allready' => !$todo,
         'todo' => $todo,
+        'warn' => $warn,
         'viewurl' => (new moodle_url('/mod/aisafetyhazards/view.php', ['id' => $cm->id]))->out(false),
         'courseurl' => course_get_url($course, $cm->sectionnum)->out(false),
     ] + $nav(setuppath::CHECK, null);

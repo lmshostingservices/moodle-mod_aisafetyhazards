@@ -1,13 +1,32 @@
 # Changelog
 
+All notable changes to mod_aisafetyhazards are recorded here.
+
+## [v1.0.21] - 2026-10-24
+
+### Fixed
+
+- The set-up screens and the learner's page now agree on which scenes are ready. Some older scenes have no Reduce or PPE answers for a hazard that can be eliminated. Learners can play these scenes, and step 6 now shows "Plays now, but needs Reduce and PPE answers" instead of "Hazards not complete". Finish counts them as ready and lists them separately so the teacher adds the answers. Resume also opens step 6 for them. Both screens now use one check, `manager::hazards_state()`.
+- Corrected the step 3 help text ("Use your own text"). It had been copied from AI Soft Skills. It now describes what a Safety Hazards scene contains and points to step 6. The two "listen first" messages now say "answers" instead of "responses".
+
+## [v1.0.20] - 2026-10-19
+
+### Added
+
+- The voiceover can read each step's question as the step starts, for example "Step 3. How can the risk be lowered?". After an elimination, it reads the "if the elimination is not approved" wording. There is a new "Each step's question" option under "Voiceover reads", and the upgrade turns it on for existing activities. Each wording is made once per scene in Set up → Voiceover at the usual voiceover price, and nothing is made automatically. These clips come after all existing clips, so no clip that has already been made changes place.
+- The current step card (Name it, Eliminate, Reduce or PPE) now catches the eye: it breathes in its step's colour, a light sweeps across it, and its icon beckons. The numbered hazard spots on the picture send out rings instead, so the two look different.
+
+### Changed
+
+- Nothing on screen moves while a voiceover plays. When a voiceover explains an answer, the step stays on screen with that answer marked, and the answers and buttons wait until it ends. Only then does the player move to the next step, the finished-hazard box or the next scene. This also applies to Study's "Show the answer" and "Next" button, and to the step questions. If the voiceover is stopped or fails, the player moves on straight away. A small sound-wave line shows that the player is waiting. Docked feedback also stays up until the voiceover ends.
+- The finished-hazard box lists every answer chosen, one under another, instead of the first answer and "+2". If the panel is too low, each answer takes one line. Only when there is still not enough room does the box fall back to the first answer and "+n".
+
 ## [v1.0.19] - 2026-10-19
 
 ### Fixed
 
 - Restore the required narration-completion lock for tap, drag, keyboard answers, row completion and the new Study controls. Stopping playback or an audio failure does not unlock answers. Retry saved narration without another generation charge. Scenes without narration remain usable.
 - Preserve the 1.0.18 Study flow, mandatory Reduce and PPE rows and compatibility with older scenes and attempts.
-
-All notable changes to mod_aisafetyhazards are recorded here.
 
 ## [v1.0.18] - 2026-10-19
 

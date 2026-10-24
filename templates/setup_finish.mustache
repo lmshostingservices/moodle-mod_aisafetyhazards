@@ -22,7 +22,7 @@
     Example context (json):
     {
         "bar": {"current": 8, "total": 8, "steps": [{"number": 8, "name": "Finish", "done": false, "current": true, "dot": 0}]},
-        "title": "Finish", "ready": 8, "scenes": 8, "allready": true, "todo": [], "viewurl": "#", "courseurl": "#",
+        "title": "Finish", "ready": 8, "scenes": 8, "allready": true, "todo": [], "warn": [], "viewurl": "#", "courseurl": "#",
         "nav": {"backurl": "#", "backlabel": "Back", "nexturl": null, "nextlabel": "", "blocked": ""}
     }
 }}
@@ -34,6 +34,7 @@
     <div class="sh-wstep">
         <h3 class="sh-wstep-title">{{#allready}}{{#str}} finish_ready, mod_aisafetyhazards, {{ready}} {{/str}}{{/allready}}{{^allready}}{{#str}} finish_notready, mod_aisafetyhazards, { "ready": {{ready}}, "scenes": {{scenes}} } {{/str}}{{/allready}}</h3>
         {{#allready}}<p>{{#str}} finish_ready_help, mod_aisafetyhazards {{/str}}</p>{{/allready}}
+        {{#warn}}<p class="sh-finish-warn">{{.}}</p>{{/warn}}
         {{^allready}}
         <ul class="sh-finish-list">{{#todo}}<li>{{.}}</li>{{/todo}}</ul>
         <p class="sh-mini mt-2">{{#str}} finish_notready_help, mod_aisafetyhazards {{/str}}</p>

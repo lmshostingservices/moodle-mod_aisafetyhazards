@@ -507,6 +507,8 @@ class learning {
                 'chips' => $chips,
                 'complete' => $progress[0]['complete'] ? 1 : 0,
                 'voice' => $voice['scene'] ?? [],
+                // The step questions read out when each step starts (keys from voiceover::questions()).
+                'questions' => (object)($voice['question'] ?? []),
                 'voicenote' => $teacher ? voiceover::silent_reason($instance, $context, $scene, $voiceconfig) : '',
             ];
         }

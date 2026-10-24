@@ -160,6 +160,36 @@ final class voiceover_test extends \advanced_testcase {
     }
 
     /**
+     * The step questions are read as shown, each wording once per scene, after every other clip.
+     */
+    public function test_step_questions(): void {
+        $config = voiceover::config($this->instance);
+        $hazards = manager::scene_hazards((int)$this->scene->id);
+        $questions = voiceover::questions($hazards);
+        // The truck can be eliminated, so its Reduce and PPE questions are asked "if the elimination is not approved".
+        $this->assertSame(
+            ['h1', 'h2', 'h3', 'eliminate', 'reduce', 'ppe', 'reduce_backup', 'ppe_backup'],
+            array_keys($questions)
+        );
+        $this->assertSame('Step 1. Which hazard is at spot 2?', $questions['h2']);
+        $this->assertSame('Step 3. How can the risk be lowered?', $questions['reduce']);
+        $this->assertSame('Step 4. If the elimination is not approved, what PPE is needed?', $questions['ppe_backup']);
+        $without = voiceover::segments($this->scene, $config, $hazards, ['situation', 'hazards', 'controls']);
+        $with = voiceover::segments($this->scene, $config, $hazards, ['situation', 'hazards', 'controls', 'questions']);
+        $this->assertSame(
+            array_column($without, 'text'),
+            array_column(array_slice($with, 0, count($without)), 'text'),
+            'Adding the questions never moves a clip already made.'
+        );
+        $asked = array_slice($with, count($without));
+        $this->assertSame(array_values($questions), array_column($asked, 'text'));
+        $this->assertSame(['question'], array_values(array_unique(array_column($asked, 'part'))));
+        $this->assertSame('question:reduce', $asked[4]['group']);
+        $refs = array_map(fn($s) => voiceover::clipref($this->instance, (int)$this->scene->id, $s), $asked);
+        $this->assertCount(count($asked), array_unique($refs), 'Each question clip has its own place.');
+    }
+
+    /**
      * Clips are at most 200 characters, split at sentence ends.
      */
     public function test_chunks(): void {

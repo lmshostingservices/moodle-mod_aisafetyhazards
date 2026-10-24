@@ -108,7 +108,7 @@ class setuppath {
         if ($state['nopicture']) {
             return self::PICTURES;
         }
-        if ($state['nohazards']) {
+        if ($state['nohazards'] || !empty($state['needrows'])) {
             return self::CHECK;
         }
         return self::FINISH;
@@ -120,30 +120,36 @@ class setuppath {
      * @param stdClass $instance
      * @param \context $context
      * @return array scenes, nopicture (scene ids without a picture), nohazards (scene ids whose hazards are not complete),
-     *     unplaced (scene ids with hazard spots never placed), ready (number playable)
+     *     needrows (older scene ids that play but lack Reduce or PPE answers for a hazard that can be eliminated),
+     *     unplaced (scene ids with hazard spots never placed), ready (number playable, as learners see it)
      */
     public static function state(stdClass $instance, \context $context): array {
         $nopicture = [];
         $nohazards = [];
+        $needrows = [];
         $unplaced = [];
         $ready = 0;
         $scenes = manager::get_scenes((int)$instance->id);
         foreach ($scenes as $scene) {
             $haspicture = manager::get_scene_image($context, (int)$scene->id)[0] !== null;
             $hazards = manager::scene_hazards((int)$scene->id);
-            $ok = manager::hazards_ok($hazards);
+            // The same check as the learner's page (manager::scene_ready()): older scenes play, and are listed apart.
+            $hstate = manager::hazards_state($hazards);
+            $ok = $hstate !== 'incomplete';
             if (!$haspicture) {
                 $nopicture[] = (int)$scene->id;
             }
             if (!$ok) {
                 $nohazards[] = (int)$scene->id;
+            } else if ($hstate === 'older') {
+                $needrows[] = (int)$scene->id;
             }
             if (array_filter($hazards, fn($h) => empty($h['distractor']) && (int)$h['placed'] === 0)) {
                 $unplaced[] = (int)$scene->id;
             }
             $ready += $haspicture && $ok ? 1 : 0;
         }
-        return ['scenes' => count($scenes), 'nopicture' => $nopicture, 'nohazards' => $nohazards, 'unplaced' => $unplaced,
-            'ready' => $ready];
+        return ['scenes' => count($scenes), 'nopicture' => $nopicture, 'nohazards' => $nohazards, 'needrows' => $needrows,
+            'unplaced' => $unplaced, 'ready' => $ready];
     }
 }

@@ -28,7 +28,7 @@
         "cmid": 1, "requests": [], "canai": true, "aioff": false, "missingcount": 1, "missingids": "1",
         "missingcredits": 5, "imagecredits": 5,
         "cards": [{"id": 1, "number": 1, "title": "Digging the trench", "image": "", "noimage": true,
-            "hazardsok": true, "canai": true, "imagecredits": 5,
+            "hazardsok": true, "hazardsolder": false, "canai": true, "imagecredits": 5,
             "editurl": "#", "spotsurl": "#", "replaceurl": "#", "deleteurl": "#", "upurl": null, "downurl": null,
             "spots": [{"number": 1, "x": 30, "y": 40, "name": "Trench collapse", "auto": true}], "autospots": 1,
             "voiceready": false, "voicemissing": "", "toolong": false}],
@@ -133,7 +133,7 @@
                 {{#check}}
                 {{#toolong}}<div class="sh-slidecard-meta is-warn">{{#str}} toolong_scene, mod_aisafetyhazards {{/str}}</div>{{/toolong}}
                 <div class="sh-slidecard-meta {{^hazardsok}}is-warn{{/hazardsok}}">
-                    {{#hazardsok}}{{#str}} scenehazardsok, mod_aisafetyhazards {{/str}}{{/hazardsok}}{{^hazardsok}}{{#str}} sceneneedshazards, mod_aisafetyhazards {{/str}}{{/hazardsok}}
+                    {{#hazardsok}}{{#str}} scenehazardsok, mod_aisafetyhazards {{/str}}{{/hazardsok}}{{^hazardsok}}{{#hazardsolder}}{{#str}} sceneneedsrows, mod_aisafetyhazards {{/str}}{{/hazardsolder}}{{^hazardsolder}}{{#str}} sceneneedshazards, mod_aisafetyhazards {{/str}}{{/hazardsolder}}{{/hazardsok}}
                 </div>
                 <div class="sh-slidecard-actions">
                     <a class="sh-btn {{^hazardsok}}sh-btn-primary{{/hazardsok}}{{#hazardsok}}sh-btn-ghost{{/hazardsok}} sh-btn-sm" href="{{editurl}}">{{#str}} editscene, mod_aisafetyhazards {{/str}}</a>

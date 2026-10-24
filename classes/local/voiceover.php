@@ -48,7 +48,10 @@ class voiceover {
     public const CATALOG_RETRY = 300;
 
     /** @var string[] What the voiceover can read; each activity chooses. */
-    public const PARTS = ['situation', 'hazards', 'controls', 'feedback'];
+    public const PARTS = ['situation', 'hazards', 'controls', 'feedback', 'questions'];
+
+    /** @var array the step questions read out, as key => stable clip number (never change these numbers). */
+    public const QUESTIONS = ['eliminate' => 2, 'reduce' => 3, 'ppe' => 4, 'reduce_backup' => 13, 'ppe_backup' => 14];
 
     /** @var string[] The eight Google Chirp 3 HD voice types. */
     public const VOICETYPES = ['Kore', 'Charon', 'Aoede', 'Puck', 'Leda', 'Fenrir', 'Zephyr', 'Orus'];
@@ -373,9 +376,54 @@ class voiceover {
                 }
             }
         }
+        if (in_array('questions', $parts, true)) {
+            // The step questions, read as shown ("Step 3. How can the risk be lowered?"). They come after every other
+            // clip, so adding them never changes the place of a clip already made. Each wording is made once per scene.
+            foreach (self::questions($hazards) as $key => $text) {
+                $ref = $key[0] === 'h' ? 100 + (int)substr($key, 1) : self::QUESTIONS[$key];
+                $add($text, 'question', $ref, 'question:' . $key);
+            }
+        }
         foreach (array_keys($out) as $i) {
             $out[$i]['index'] = $i;
             $out[$i]['locale'] = $config['locale'];
+        }
+        return $out;
+    }
+
+    /**
+     * The step questions of a scene's hazards, as the player shows them, keyed h1, h2, h3 (Name it, by spot number),
+     * eliminate, reduce, ppe, and reduce_backup and ppe_backup when a hazard can be eliminated.
+     *
+     * @param array $hazards from {@see manager::scene_hazards()}
+     * @return array key => text
+     */
+    public static function questions(array $hazards): array {
+        $step = fn(int $n, string $q) => get_string('step_n', 'mod_aisafetyhazards', $n) . '. ' . $q;
+        $out = [];
+        $number = 0;
+        $kinds = [];
+        foreach ($hazards as $h) {
+            if (!empty($h['distractor'])) {
+                continue;
+            }
+            $number++;
+            $out['h' . $number] = $step(1, get_string('q_hazard', 'mod_aisafetyhazards', $number));
+            $gone = false;
+            foreach ($h['controls']['eliminate'] ?? [] as $c) {
+                $gone = $gone || (!empty($c['correct']) && !empty($c['eliminates']));
+            }
+            $kinds['eliminate'] = true;
+            foreach (['reduce', 'ppe'] as $kind) {
+                $kinds[$kind . ($gone ? '_backup' : '')] = true;
+            }
+        }
+        foreach (array_keys(self::QUESTIONS) as $key) {
+            if (!empty($kinds[$key])) {
+                $kind = explode('_', $key)[0];
+                $n = array_search($kind, catalogue::KINDS, true) + 2;
+                $out[$key] = $step($n, get_string('q_' . $key, 'mod_aisafetyhazards', $number));
+            }
         }
         return $out;
     }
@@ -477,7 +525,7 @@ class voiceover {
      * @param \context $context
      * @param stdClass $scene
      * @param array|null $config
-     * @return array {scene: urls, hazard: hazard id => urls, control: control id => urls}
+     * @return array {scene: urls, hazard: hazard id => urls, control: control id => urls, question: key => urls}
      */
     public static function playlist(stdClass $instance, \context $context, stdClass $scene, ?array $config = null): array {
         $config = $config ?? self::config($instance);
@@ -485,7 +533,7 @@ class voiceover {
         foreach (self::segments($scene, $config, null, self::parts($instance)) as $segment) {
             $groups[$segment['group']][] = self::url($context, (int)$scene->id, $segment);
         }
-        $out = ['scene' => [], 'hazard' => [], 'control' => []];
+        $out = ['scene' => [], 'hazard' => [], 'control' => [], 'question' => []];
         foreach ($groups as $key => $urls) {
             if (in_array('', $urls, true)) {
                 // Not every clip has been made yet: this part stays silent rather than half read.
@@ -494,6 +542,8 @@ class voiceover {
             [$kind, $id] = array_pad(explode(':', $key), 2, 0);
             if ($kind === 'scene') {
                 $out['scene'] = $urls;
+            } else if ($kind === 'question') {
+                $out['question'][$id] = $urls;
             } else {
                 $out[$kind][(int)$id] = $urls;
             }

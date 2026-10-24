@@ -4294,3 +4294,201 @@
         animation: none;
     }
 }
+
+/* The step being worked on draws the eye: its card breathes in the step's colour, a light sweeps across it and its
+   icon beckons. The hazard spots on the picture send out rings instead, so the two never look the same. */
+.path-mod-aisafetyhazards .sh-stepcard.is-now {
+    animation: sh-hop .55s var(--sh-spring), sh-cardbreathe 2.4s .6s ease-in-out infinite;
+}
+.path-mod-aisafetyhazards .sh-stepcard.is-now::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -60%;
+    width: 45%;
+    background:
+        linear-gradient(
+            100deg,
+            transparent 0%,
+            rgba(var(--c-rgb), .1) 45%,
+            rgba(255, 255, 255, .7) 50%,
+            rgba(var(--c-rgb), .1) 55%,
+            transparent 100%
+        );
+    pointer-events: none;
+    animation: sh-shine 3.2s .9s ease-in-out infinite;
+}
+.path-mod-aisafetyhazards .sh-stepcard.is-now .sh-stepcard-icon {
+    animation: sh-beckon 2.4s .6s ease-in-out infinite;
+}
+.path-mod-aisafetyhazards .sh-stepcard.is-now:hover .sh-stepcard-icon {
+    animation-play-state: paused;
+}
+.path-mod-aisafetyhazards .sh-play.is-talking .sh-stepcard.is-now,
+.path-mod-aisafetyhazards .sh-play.is-talking .sh-stepcard.is-now::after,
+.path-mod-aisafetyhazards .sh-play.is-talking .sh-stepcard.is-now .sh-stepcard-icon {
+    animation-play-state: paused;
+}
+
+@keyframes sh-cardbreathe {
+    0%,
+    100% {
+        box-shadow: 0 0 0 3px rgba(var(--c-rgb), .12), 0 16px 30px -16px rgba(var(--c-rgb), .7);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(var(--c-rgb), .2), 0 18px 34px -14px rgba(var(--c-rgb), .85);
+    }
+}
+
+@keyframes sh-beckon {
+    0%,
+    55%,
+    100% {
+        transform: none;
+    }
+    65% {
+        transform: translateY(-3px) rotate(-10deg) scale(1.12);
+    }
+    75% {
+        transform: translateY(0) rotate(8deg) scale(1.06);
+    }
+    85% {
+        transform: rotate(-4deg);
+    }
+}
+
+/* While a voiceover explains an answer, the answers wait: a small sound wave says why. */
+.path-mod-aisafetyhazards .sh-question-tip.is-talking {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--sh-text-2);
+    font-weight: 700;
+}
+.path-mod-aisafetyhazards .sh-wave {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 14px;
+}
+.path-mod-aisafetyhazards .sh-wave i {
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: #4f46e5;
+    animation: sh-wave 1s ease-in-out infinite;
+}
+.path-mod-aisafetyhazards .sh-wave i:nth-child(2) {
+    animation-delay: .15s;
+}
+.path-mod-aisafetyhazards .sh-wave i:nth-child(3) {
+    animation-delay: .3s;
+}
+.path-mod-aisafetyhazards .sh-wave i:nth-child(4) {
+    animation-delay: .45s;
+}
+
+@keyframes sh-wave {
+    0%,
+    100% {
+        transform: scaleY(.35);
+    }
+    50% {
+        transform: scaleY(1);
+    }
+}
+
+/* A finished hazard's box: every answer chosen, listed one under another in its step's colour. */
+.path-mod-aisafetyhazards .sh-donecard-val.is-list {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 4px;
+}
+.path-mod-aisafetyhazards .sh-donecard-val.is-list .sh-pill {
+    display: -webkit-box;
+    flex: none;
+    padding: 4px 10px;
+    border-radius: 9px;
+    font-size: .76rem;
+    line-height: 1.3;
+    text-align: start;
+    white-space: normal;
+    max-height: calc(2.6em + 8px);
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.path-mod-aisafetyhazards .sh-donecard-val.is-list .sh-pill:nth-child(2) {
+    animation-delay: .1s;
+}
+.path-mod-aisafetyhazards .sh-donecard-val.is-list .sh-pill:nth-child(3) {
+    animation-delay: .2s;
+}
+.path-mod-aisafetyhazards .sh-donecard-val.is-list .sh-pill.is-fallback {
+    display: none;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-snug .sh-donecard-val.is-list .sh-pill {
+    display: block;
+    max-height: none;
+    padding: 2px 8px;
+    font-size: .72rem;
+    white-space: nowrap;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-short .sh-donecard-val.is-list {
+    flex-direction: row;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-short .sh-donecard-val.is-list .sh-pill {
+    flex: 0 1 auto;
+    min-width: 0;
+    border-radius: 999px;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-short .sh-donecard-val.is-list .sh-pill:nth-child(n+2) {
+    display: none;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-short .sh-donecard-val.is-list .sh-pill.is-fallback {
+    display: block;
+    flex: none;
+}
+.path-mod-aisafetyhazards .sh-play.is-tight .sh-donecard:has(.sh-pill + .sh-pill) {
+    align-items: start;
+}
+
+/* A finished hazard's box takes the whole card, so its list of answers has every bit of room there is. */
+.path-mod-aisafetyhazards .sh-hcard > .sh-hcard-next:has(.sh-donebox) {
+    flex: 1 1 auto;
+}
+.path-mod-aisafetyhazards .sh-hcard-next > .sh-donebox {
+    flex: 0 1 auto;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-snug {
+    gap: 6px;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-snug .sh-donecard {
+    gap: 4px;
+    padding: 6px 8px;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-snug .sh-donecard-val.is-list {
+    gap: 3px;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-snug .sh-donecard-val.is-list .sh-pill {
+    padding: 1px 8px;
+    line-height: 1.35;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-snug:not(.is-short) .sh-donecard-val.is-list .sh-pill.is-fallback {
+    display: none;
+}
+.path-mod-aisafetyhazards .sh-donegrid.is-short .sh-donecard-val.is-list .sh-pill.is-fallback {
+    display: block;
+}
+
+/* Finish: scenes that play but still need answers. */
+.path-mod-aisafetyhazards .sh-finish-warn {
+    margin: 10px 0 0;
+    padding: 8px 12px;
+    border: 1px solid rgba(220, 104, 3, .35);
+    border-radius: 10px;
+    background: var(--sh-warning-soft);
+    color: var(--sh-warning);
+    font-weight: 600;
+}

@@ -327,6 +327,21 @@ class manager {
     }
 
     /**
+     * How complete a scene's hazards are: 'ok' (complete), 'older' (saved before every hazard needed Reduce and PPE
+     * answers: it plays, but a hazard that can be eliminated has no Reduce or PPE row yet) or 'incomplete' (does not
+     * play). The set-up screens and the learner's page use this one answer, so they always agree.
+     *
+     * @param array $hazards from {@see self::scene_hazards()}
+     * @return string
+     */
+    public static function hazards_state(array $hazards): string {
+        if (self::hazards_ok($hazards)) {
+            return 'ok';
+        }
+        return self::hazards_ok($hazards, true) ? 'older' : 'incomplete';
+    }
+
+    /**
      * Whether a scene is ready to play: a picture and complete hazards.
      *
      * @param \context $context

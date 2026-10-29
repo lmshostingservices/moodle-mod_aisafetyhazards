@@ -2,6 +2,12 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.22] - 2026-10-29
+
+### Changed
+
+- Replaced the shared people icon with a safety hard hat in Moodle's activity chooser and course activity icon. AI Soft Skills keeps its existing icon. No activity behaviour, settings or pricing changed.
+
 ## [v1.0.21] - 2026-10-24
 
 ### Fixed

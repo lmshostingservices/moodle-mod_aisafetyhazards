@@ -2,6 +2,13 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.25] - 2026-11-10
+
+### Added
+- AI Course Builder adapter. AI Course Builder can now build Safety Hazards activities, using the existing priced, idempotent scene-draft request and native safety-scene storage. (The adapter work from 1.0.23 and 1.0.24, which was never released, is included.)
+- Course Builder outcomes come from the lesson's outcomes, then the course outcomes, then the source text. Before this, every Course Builder job failed.
+- When AI scene drafts are off or the site is not connected, AI Course Builder shows "Needs setup" instead of offering a tool that would fail during the build.
+
 ## [v1.0.22] - 2026-10-29
 
 ### Changed

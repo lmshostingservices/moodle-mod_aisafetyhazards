@@ -1074,3 +1074,4 @@ $string['wrongspot'] = 'That hazard is somewhere else in the picture.';
 $string['yourattempts'] = 'Your attempts';
 $string['zipinvalid'] = 'That ZIP file could not be read.';
 $string['ziptoolarge'] = 'That ZIP is too large. Upload at most {$a} pictures and 200 MB unpacked.';
+$string['aicb_needssetup'] = 'Switch on "AI scene drafts" in the AI Safety Hazards settings, and connect this site to LMS Labs, to use it in AI Course Builder.';

@@ -69,13 +69,37 @@ final class generator {
         $lesson = $brief['lesson'] ?? [];
         $title = str_replace(['<', '>'], '', trim((string)($lesson['title'] ?? $instance->name)));
         $program = $brief['program'] ?? [];
+        // Lessons that are not about safety (a teacher can add this activity to any lesson) still
+        // get a scene: the hazards that arise while doing this lesson's work in this workplace.
         $brieftext = 'Create exactly one learner-facing workplace safety scene for this lesson: '
-            . $title . '. Teach these tagged safety outcomes: '
+            . $title . '. Lesson outcomes: '
             . \core_text::substr(implode('; ', $outcomes), 0, 1400)
-            . '. Show a realistic hazard, a suitable risk control, and the safe decision. Return one scene only.';
+            . '. Set the scene in this workplace and show the real safety hazards that arise during this kind of work'
+            . ' (for example slips and trips, manual handling, equipment, aggressive behaviour or fatigue),'
+            . ' each with a suitable risk control, and the safe decision. Return one scene only.';
         $userid = (int)$DB->get_field('local_aicoursebuilder_program', 'userid', ['id' => (int)($brief['programid'] ?? 0)]);
         if ($userid < 1) {
             throw new \moodle_exception('generationfailed', 'local_aicoursebuilder');
+        }
+        // A new activity starts on the form's default industry (construction). Describe the
+        // course's own workplace instead, so a retail or aged-care lesson is not set on a building site.
+        if ((string)$instance->industry === 'construction' && (string)$instance->subindustry === '' && (string)$instance->task === '') {
+            $clean = static fn($v) => \core_text::substr(trim(str_replace(['<', '>'], '', clean_param((string)$v, PARAM_TEXT))), 0, 255);
+            $industry = $clean($program['subject'] ?? '') ?: $clean($program['sector'] ?? '') ?: $clean($program['name'] ?? '');
+            if ($industry !== '') {
+                $instance->industry = \mod_aisafetyhazards\local\catalogue::CUSTOM;
+                $instance->subindustry = \mod_aisafetyhazards\local\catalogue::CUSTOM;
+                $instance->task = \mod_aisafetyhazards\local\catalogue::CUSTOM;
+                $instance->customindustry = $industry;
+                $instance->customsubindustry = $clean($program['level'] ?? '') ?: $industry;
+                $instance->customtask = $clean($title);
+                $DB->update_record('aisafetyhazards', (object)[
+                    'id' => $instance->id,
+                    'industry' => $instance->industry, 'subindustry' => $instance->subindustry, 'task' => $instance->task,
+                    'customindustry' => $instance->customindustry, 'customsubindustry' => $instance->customsubindustry,
+                    'customtask' => $instance->customtask,
+                ]);
+            }
         }
         $row = \mod_aisafetyhazards\local\ai\requests::start_scene(
             $instance,

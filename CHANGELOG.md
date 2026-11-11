@@ -2,6 +2,12 @@
 
 All notable changes to mod_aisafetyhazards are recorded here.
 
+## [v1.0.26] - 2026-11-11
+
+### Fixed
+- AI Course Builder scenes are set in the course's own workplace (its subject, level and lesson), not in Construction, the form's default industry.
+- A lesson that is not about safety still gets a scene: the request asks for the safety hazards that arise while doing that lesson's work. Before this, the service rejected scenes for those lessons.
+
 ## [v1.0.25] - 2026-11-10
 
 ### Added
